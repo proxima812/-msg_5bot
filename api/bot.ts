@@ -12,6 +12,52 @@ if (!token) throw new Error("TOKEN is unset")
 
 const bot = new Bot(token)
 
+// -1002387924511
+
+const CHANNEL_ID = "-1002387924511" // ID канала, куда бот будет отправлять сообщения
+
+// Команда /add_card
+bot.command("add_card", async ctx => {
+	const userMessage = ctx.message.text.replace("/add_card", "").trim()
+
+	// Проверяем, что сообщение соответствует формату ссылки
+	const regex = /^https:\/\/t\.me\/([a-zA-Z0-9_]+)\/(\d+)$/
+	const match = userMessage.match(regex)
+
+	if (!match) {
+		await ctx.reply(
+			"Неверный формат. Используйте:\n`/add_card https://t.me/КАНАЛ/НОМЕР_ПОСТА`",
+			{ parse_mode: "Markdown" },
+		)
+		return
+	}
+
+	const userId = ctx.from.id
+
+	try {
+		// Добавляем карточку в базу данных
+		const { data, error } = await supabase
+			.from("posts")
+			.insert([{ desc: userMessage, userId }])
+
+		if (error) {
+			console.error("Ошибка добавления карточки в БД:", error)
+			await ctx.reply("Произошла ошибка при добавлении карточки.")
+			return
+		}
+
+		// Успешное добавление
+		await ctx.reply("Карточка успешно добавлена!")
+
+		// Публикуем карточку в канал
+		await bot.api.sendMessage(CHANNEL_ID, `Новая пост:\n${userMessage}`)
+	} catch (err) {
+		console.error("Ошибка при добавлении карточки:", err)
+		await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.")
+	}
+})
+
+
 // Функция для удаления карточки из Supabase
 async function deleteCard(cardId) {
 	const { data, error } = await supabase.from("posts").delete().eq("id", cardId) // Удаляем карточку с соответствующим id
