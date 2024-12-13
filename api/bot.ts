@@ -1,9 +1,9 @@
 require("dotenv").config()
 import { createClient } from "@supabase/supabase-js"
-import { Bot, InlineKeyboard } from "grammy"
+import { Bot, InlineKeyboard, webhookCallback } from "grammy"
 
 const supabase = createClient(
-	process.env.SP_HOST, // URL вашего проекта Supabase
+	"https://fkwivycaacgpuwfvozlp.supabase.co", // URL вашего проекта Supabase
 	process.env.SP_API_SECRET, // Ваш ключ API Supabase
 )
 
@@ -257,3 +257,5 @@ async function getUserCards(userId) {
 	}
 	return data || []
 }
+
+export default webhookCallback(bot, "http")
