@@ -3,19 +3,58 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv").config();
 const supabase_js_1 = require("@supabase/supabase-js");
 const grammy_1 = require("grammy");
-const supabase = (0, supabase_js_1.createClient)(
-	"ttps://fkwivycaacgpuwfvozlp.supabase.co", // URL вашего проекта Supabase
-	"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrd2l2eWNhYWNncHV3ZnZvemxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5MDc4MTEsImV4cCI6MjA0OTQ4MzgxMX0.44dYay0RWos4tqwuj6H-ylqN4TrAIabeQLNzBn6Xuy0",
-)
-const token = "7930164051:AAHF4GdP_jpjOiBl6ZCA1gY8HJZ-VH3A520"
+const supabase = (0, supabase_js_1.createClient)("https://fkwivycaacgpuwfvozlp.supabase.co", // URL вашего проекта Supabase
+process.env.SP_API_SECRET);
+const token = process.env.TOKEN;
 if (!token)
     throw new Error("TOKEN is unset");
 const bot = new grammy_1.Bot(token);
+// -1002387924511
+const CHANNEL_ID = "-1002387924511"; // ID канала, куда бот будет отправлять сообщения
+// Команда /add_card
+bot.command("add_card", async (ctx) => {
+    const userMessage = ctx.message.text.replace("/add_card", "").trim();
+    // Проверяем, что сообщение соответствует формату ссылки
+    const regex = /^https:\/\/t\.me\/([a-zA-Z0-9_]+)\/(\d+)$/;
+    const match = userMessage.match(regex);
+    if (!match) {
+        await ctx.reply("Неверный формат. Используйте:\n`/add_card https://t.me/КАНАЛ/НОМЕР_ПОСТА`", { parse_mode: "Markdown" });
+        return;
+    }
+    const userId = ctx.from.id;
+    try {
+        // Добавляем карточку в базу данных
+        const { data, error } = await supabase
+            .from("posts")
+            .insert([{ desc: userMessage, userId }]);
+        if (error) {
+            console.error("Ошибка добавления карточки в БД:", error);
+            await ctx.reply("Произошла ошибка при добавлении карточки.");
+            return;
+        }
+        // Успешное добавление
+        await ctx.reply("Карточка успешно добавлена!");
+        // Публикуем карточку в канал
+        await bot.api.sendMessage(CHANNEL_ID, `Новая пост:\n${userMessage}`);
+    }
+    catch (err) {
+        console.error("Ошибка при добавлении карточки:", err);
+        await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.");
+    }
+});
 // Функция для удаления карточки из Supabase
 async function deleteCard(cardId) {
     const { data, error } = await supabase.from("posts").delete().eq("id", cardId); // Удаляем карточку с соответствующим id
     if (error) {
         console.error("Ошибка при удалении карточки:", error);
+        return false;
+    }
+    return true;
+}
+async function deleteGroup(cardId) {
+    const { data, error } = await supabase.from("posts").delete().eq("id", groupId); // Удаляем карточку с соответствующим id
+    if (error) {
+        console.error("Ошибка при удалении группы:", error);
         return false;
     }
     return true;
@@ -28,6 +67,8 @@ bot.command("start", async (ctx) => {
     // Добавляем кнопку "Добавить карточку"
     keyboard.text("Добавить карточку", "add_card");
     keyboard.row();
+    // keyboard.text("Добавить группу", "add_group")
+    // keyboard.row()
     // Добавляем кнопку "Посмотреть свои карточки"
     keyboard.text("Посмотреть свои карточки", "view_cards");
     keyboard.row();
@@ -40,6 +81,7 @@ bot.command("start", async (ctx) => {
 async function showMainMenu(ctx) {
     const keyboard = new grammy_1.InlineKeyboard()
         .text("Добавить карточку", "add_card")
+        // .text("Добавить группу", "add_group")
         .row()
         .text("Посмотреть карточки", "view_cards");
     await ctx.reply("Выберите действие:", {
@@ -215,5 +257,4 @@ async function getUserCards(userId) {
     }
     return data || [];
 }
-
-bot.start()
+exports.default = (0, grammy_1.webhookCallback)(bot, "http");
