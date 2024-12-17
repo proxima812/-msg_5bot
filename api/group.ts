@@ -48,7 +48,10 @@ bot.command("start", async ctx => {
 		reply_markup: new InlineKeyboard()
 			.text("Добавить группу", "add_group")
 			.row()
-			.text("Посмотреть группы", "view_groups"),
+			.url("👥 Канал, где будет ваша группа", "https://t.me/trust_unity")
+			.row()
+			.url("🌐 Сайт, где будет ваша группа", "https://example.com"),
+		// .text("Посмотреть группы", "view_groups"),
 	})
 })
 
@@ -61,6 +64,33 @@ bot.command("add_group", async ctx => {
 	await ctx.reply("Введите название группы:")
 	ctx.session.step = "name"
 })
+
+bot.command("show_groups", async ctx => {
+	// Проверка на ID администратора
+	if (ctx.from.id !== 5522146122) {
+		await ctx.reply("У вас нет прав для использования этой команды.")
+		return
+	}
+
+	// Получаем все группы из базы данных
+	const { data, error } = await supabase.from("groups").select("*")
+
+	if (error || !data || data.length === 0) {
+		await ctx.reply("В базе данных нет групп.")
+		return
+	}
+
+	// Отправляем информацию о группах в канал
+	for (const group of data) {
+		await bot.api.sendMessage(
+			CHANNEL_ID,
+			`Новая группа добавлена:\nНазвание: ${group.name}\nФормат: ${group.format}\nСообщество: ${group.community}\nОписание: ${group.description}\nСсылка: ${group.link}`,
+		)
+	}
+
+	await ctx.reply("Все группы были отправлены в канал.")
+})
+
 
 // Обработка сообщений пользователя для заполнения данных группы
 bot.on("message:text", async ctx => {
@@ -84,7 +114,7 @@ bot.on("message:text", async ctx => {
 		ctx.session.groupData.description = ctx.message.text.trim()
 		ctx.session.step = "link"
 		await ctx.reply(
-			"Введите ссылку на группу:\n Если Telegram, то пишите @nНазвание\n Если другие ссылки, то начинайте с https://",
+			"Введите ссылку на группу:\n👉 Если Telegram, то пишите @Название\n👉 Если другие ссылки, то начинайте с https://",
 			{ parse_mode: "Markdown" },
 		)
 	} else if (step === "link") {
