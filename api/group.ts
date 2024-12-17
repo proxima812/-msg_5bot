@@ -128,10 +128,8 @@ bot.on("message:text", async ctx => {
 // })
 
 bot.command("start", async ctx => {
-	// Сбрасываем состояние сессии для новой цепочки действий
 	ctx.session.groupData = {} // Очищаем данные сессии
 
-	// Отображаем главное меню
 	await ctx.reply("Добро пожаловать! Выберите действие:", {
 		reply_markup: new InlineKeyboard()
 			.text("Добавить группу", "add_group")
