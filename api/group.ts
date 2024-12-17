@@ -38,16 +38,18 @@ bot.use(session({ initial: (): SessionData => ({ groupData: {} }) }))
 
 // Команда /add_group с промежуточным сохранением данных
 bot.command("add_group", async ctx => {
-  if (!ctx.session.groupData) {
-    ctx.session.groupData = {}
-  }
-  // ctx.session.groupData = {}
+	if (!ctx.session.groupData) {
+		ctx.session.groupData = {}
+	}
+	// ctx.session.groupData = {}
 	await ctx.reply("Введите название группы:")
 	ctx.session.step = "name"
 })
 
 // Обработка сообщений пользователя для заполнения данных группы
 bot.on("message:text", async ctx => {
+	if (ctx.message.text.startsWith("/")) return
+
 	const step = ctx.session.step
 
 	if (step === "name") {
