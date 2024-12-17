@@ -76,8 +76,8 @@ bot.command("add_group", async ctx => {
 	try {
 		// Добавляем карточку в базу данных
 		const { data, error } = await supabase
-			.from("posts")
-			.insert([{ desc: userMessage, userId }])
+			.from("groups")
+			.insert([{ name: userMessage, userId }])
 
 		if (error) {
 			console.error("Ошибка добавления карточки в БД:", error)
@@ -86,12 +86,12 @@ bot.command("add_group", async ctx => {
 		}
 
 		// Успешное добавление
-		await ctx.reply("Карточка успешно добавлена!")
+		await ctx.reply("Группа успешно добавлена!")
 
 		// Публикуем карточку в канал
 		await bot.api.sendMessage(CHANNEL_ID, `Новая пост:\n${userMessage}`)
 	} catch (err) {
-		console.error("Ошибка при добавлении карточки:", err)
+		console.error("Ошибка при добавлении группы:", err)
 		await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.")
 	}
 })
