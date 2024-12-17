@@ -2,11 +2,11 @@ require("dotenv").config()
 import { createClient } from "@supabase/supabase-js"
 import {
 	Bot,
-	InlineKeyboard,
-	webhookCallback,
 	Context,
+	InlineKeyboard,
 	session,
 	SessionFlavor,
+	webhookCallback,
 } from "grammy"
 
 const supabase = createClient(
@@ -62,7 +62,10 @@ bot.on("message:text", async ctx => {
 	} else if (step === "description") {
 		ctx.session.groupData.description = ctx.message.text.trim()
 		ctx.session.step = "link"
-		await ctx.reply("Введите ссылку на группу:")
+		await ctx.reply(
+			"Введите ссылку на группу:\n Если Telegram, то пишите @НАЗВАНИЕ\n Если другие ссылки, то начинайте с https://",
+			{ parse_mode: "Markdown" },
+		)
 	} else if (step === "link") {
 		ctx.session.groupData.link = ctx.message.text.trim()
 
