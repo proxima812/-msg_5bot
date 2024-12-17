@@ -13,73 +13,75 @@ if (!token) throw new Error("TOKEN is unset")
 const bot = new Bot(token)
 const CHANNEL_ID = "-1002387924511" // ID канала, куда бот будет отправлять сообщения
 
-// Универсальная функция для обработки команды add_card и add_group
-const addItemProcess = async (ctx, tableName, messagePrefix) => {
-	let step = 1
-	const userId = ctx.from.id
-	let groupInfo = {}
-
-	const steps = [
-		{ question: "Название группы", field: "name" },
-		{
-			question:
-				"Выберите формат:\n1. По темам\n2. Медитация\n3. Спикерская\n4. Вопрос&Ответ\n5. Для новичков\n6. От 5 лет чистоты/трезвости/ясности\n7. Прочее",
-			field: "format",
-		},
-		{
-			question:
-				"Выберите сообщество:\n1. АА\n2. АН\n3. CODA\n4. ВДА\n5. АС (сексоголики)\n6. ЛЗ (любовно-зависимые)\n7. АИЗ (интернет зависимые)\n8. DAA (химические зависимые)\n9. UAA (всех-зависимостей)\n10. Свое сообщество",
-			field: "community",
-		},
-		{ question: "Ссылка на группу/сайт/собрание", field: "link" },
-		{ question: "Краткое описание группы", field: "description" },
-	]
-
-	// Запуск процесса пошагового добавления
-	const askQuestion = async () => {
-		if (step > steps.length) {
-			// Сохраняем данные в Supabase
-			const { data, error } = await supabase.from(tableName).insert([
-				{
-					...groupInfo,
-					userId,
-				},
-			])
-
-			if (error) {
-				console.error("Ошибка добавления данных в БД:", error)
-				return ctx.reply("Произошла ошибка при добавлении данных.")
-			}
-
-			// Отправляем сообщение в канал
-			await bot.api.sendMessage(CHANNEL_ID, `Новая запись:\n${JSON.stringify(groupInfo)}`)
-
-			return ctx.reply("Группа успешно добавлена!")
-		}
-
-		const currentStep = steps[step - 1]
-		await ctx.reply(currentStep.question)
-		step++
-	}
-
-	bot.on("message:text", async ctx => {
-		const userMessage = ctx.message.text.trim()
-
-		if (groupInfo[steps[step - 1].field]) {
-			// Если информация уже получена на данном шаге
-			groupInfo[steps[step - 1].field] = userMessage
-			await askQuestion()
-		}
-	})
-
-	await askQuestion() // Инициализация первого вопроса
-}
-
-// Команда /add_group
+// Обработчик команды /add_group
 bot.command("add_group", async ctx => {
-	await addItemProcess(ctx, "groups", "add_group")
+  // Запрашиваем у пользователя все данные в одном сообщении
+  await ctx.reply(
+    "Пожалуйста, напишите информацию о группе в следующем формате:\n" +
+    "Группа (Аббревиатура) или полное название [пробел] Формат [пробел] Краткое описание (до 110 символов) [пробел] Ссылка на группу\n" +
+    "Пример:\nГруппа АА Спикерская Нужные ведущие https://t.me/link-group"
+  )
 })
 
+// Обработчик текста, который приходит после команды /add_group
+bot.on("message:text", async ctx => {
+  // Проверяем, что это не команда /add_group
+  if (!ctx.message.text.startsWith("/add_group")) {
+    return
+  }
+
+  // Убираем команду /add_group и получаем данные
+  const userMessage = ctx.message.text.replace("/add_group", "").trim()
+
+  // Проверяем, что сообщение состоит из 4 частей, разделенных пробелами
+  const parts = userMessage.split(" ")
+
+  if (parts.length !== 4) {
+    await ctx.reply(
+      "Неверный формат. Пожалуйста, используйте следующий формат:\n" +
+      "Группа (Аббревиатура) или полное название [пробел] Формат [пробел] Краткое описание (до 110 символов) [пробел] Ссылка на группу"
+    )
+    return
+  }
+
+  const [groupName, format, description, link] = parts
+
+  // Проверяем, что описание не превышает 110 символов
+  if (description.length > 110) {
+    await ctx.reply("Описание не должно превышать 110 символов.")
+    return
+  }
+
+  // Проверка формата ссылки (обязательно, чтобы ссылка начиналась с https://t.me/)
+  const regex = /^https:\/\/t\.me\/[a-zA-Z0-9_]+(\/\d+)?$/
+  if (!regex.test(link)) {
+    await ctx.reply("Ссылка должна быть в формате: https://t.me/КАНАЛ/НОМЕР_ПОСТА")
+    return
+  }
+
+  const userId = ctx.from.id
+
+  try {
+    // Добавляем группу в базу данных Supabase
+    const { data, error } = await supabase
+      .from("groups")
+      .insert([{ name: groupName, format, desc: description, link, userId }])
+
+    if (error) {
+      console.error("Ошибка добавления группы в БД:", error)
+      await ctx.reply("Произошла ошибка при добавлении группы.")
+      return
+    }
+
+    // Успешное добавление
+    await ctx.reply("Группа успешно добавлена!")
+    // Публикуем сообщение в канал
+    await bot.api.sendMessage(CHANNEL_ID, `Новая группа:\n${groupName}\nФормат: ${format}\nОписание: ${description}\nСсылка: ${link}`)
+  } catch (err) {
+    console.error("Ошибка при добавлении группы:", err)
+    await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.")
+  }
+})
 // Функция для получения карточек пользователя из Supabase
 async function getUserCards(userId) {
 	const { data, error } = await supabase
@@ -120,6 +122,66 @@ bot.command("start", async ctx => {
 		reply_markup: keyboard, // Передаем клавиатуру
 	})
 })
+
+bot.on("callback_query", async ctx => {
+	const data = ctx.callbackQuery.data
+	const userId = ctx.from.id
+
+	if (data === "add_group") {
+		// Запрос на добавление новой группы
+		await ctx.answerCallbackQuery()
+		await ctx.reply(
+			"Чтобы добавить группу, напишите всю информацию в таком виде:\n" +
+				"- группа (Аббревиатура) либо полное название\n" +
+				"- формат\n" +
+				"- Краткое описание до 110 символов\n" +
+				"- ссылка на группу\n\n" +
+				"Пример:\n" +
+				"Группа АА Спикерская Нужные ведущие https://t.me/link-group",
+			{ parse_mode: "Markdown" },
+		)
+
+		const keyboard = new InlineKeyboard().text("⬅️ Назад", "main_menu")
+		await ctx.reply("Вернуться в главное меню:", {
+			reply_markup: keyboard,
+		})
+	} else if (data === "view_groups") {
+		// Получаем группы пользователя
+		const groups = await getUserGroups(userId) // аналог getUserCards, только для групп
+		const keyboard = new InlineKeyboard()
+
+		if (groups.length === 0) {
+			// Если у пользователя нет групп
+			await ctx.answerCallbackQuery()
+			await ctx.reply("У вас нет групп.")
+			const keyboard = new InlineKeyboard().text("⬅️ Назад", "main_menu")
+			await ctx.reply("Вернуться в главное меню:", {
+				reply_markup: keyboard,
+			})
+			return
+		}
+
+		// Выводим все группы пользователя
+		groups.forEach(group => {
+			const shortDesc =
+				group.name.length > 30 ? `${group.name.slice(0, 30)}...` : group.name
+			keyboard.text(`#${group.id}: ${shortDesc}`, `view_group_${group.id}`).row()
+		})
+
+		await ctx.answerCallbackQuery()
+		await ctx.reply("Ваши группы:", {
+			reply_markup: keyboard,
+		})
+	} else if (data === "main_menu") {
+		// Переход в главное меню
+		await ctx.answerCallbackQuery()
+		await showMainMenu(ctx)
+	} else {
+		// Обработка неизвестных команд
+		await ctx.answerCallbackQuery({ text: "Неизвестная команда." })
+	}
+})
+
 
 // Обработчик нажатия на кнопки
 bot.on("callback_query", async ctx => {
