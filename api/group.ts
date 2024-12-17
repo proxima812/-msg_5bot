@@ -38,7 +38,10 @@ bot.use(session({ initial: (): SessionData => ({ groupData: {} }) }))
 
 // Команда /add_group с промежуточным сохранением данных
 bot.command("add_group", async ctx => {
-	ctx.session.groupData = {}
+  if (!ctx.session.groupData) {
+    ctx.session.groupData = {}
+  }
+  // ctx.session.groupData = {}
 	await ctx.reply("Введите название группы:")
 	ctx.session.step = "name"
 })
@@ -63,7 +66,7 @@ bot.on("message:text", async ctx => {
 		ctx.session.groupData.description = ctx.message.text.trim()
 		ctx.session.step = "link"
 		await ctx.reply(
-			"Введите ссылку на группу:\n Если Telegram, то пишите @НАЗВАНИЕ\n Если другие ссылки, то начинайте с https://",
+			"Введите ссылку на группу:\n Если Telegram, то пишите @nНазвание\n Если другие ссылки, то начинайте с https://",
 			{ parse_mode: "Markdown" },
 		)
 	} else if (step === "link") {
@@ -110,15 +113,28 @@ bot.on("message:text", async ctx => {
 })
 
 // Обработчик команды /start
-bot.command("start", async ctx => {
-	const keyboard = new InlineKeyboard()
-		.text("Добавить группу", "add_group")
-		.row()
-		.text("Посмотреть свои группы", "view_groups")
-		.row()
+// bot.command("start", async ctx => {
+// 	const keyboard = new InlineKeyboard()
+// 		.text("Добавить группу", "add_group")
+// 		.row()
+// 		.text("Посмотреть свои группы", "view_groups")
+// 		.row()
 
-	await ctx.reply("Выберите действие:", {
-		reply_markup: keyboard,
+// 	await ctx.reply("Выберите действие:", {
+// 		reply_markup: keyboard,
+// 	})
+// })
+
+bot.command("start", async ctx => {
+	// Сбрасываем состояние сессии для новой цепочки действий
+	ctx.session.groupData = {} // Очищаем данные сессии
+
+	// Отображаем главное меню
+	await ctx.reply("Добро пожаловать! Выберите действие:", {
+		reply_markup: new InlineKeyboard()
+			.text("Добавить группу", "add_group")
+			.row()
+			.text("Посмотреть группы", "view_groups"),
 	})
 })
 
