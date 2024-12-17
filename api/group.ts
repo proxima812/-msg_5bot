@@ -36,6 +36,17 @@ const CHANNEL_ID = "-1002387924511"
 // Middleware для сессий
 bot.use(session({ initial: (): SessionData => ({ groupData: {} }) }))
 
+bot.command("start", async ctx => {
+	ctx.session.groupData = {} // Очищаем данные сессии
+
+	await ctx.reply("Добро пожаловать! Выберите действие:", {
+		reply_markup: new InlineKeyboard()
+			.text("Добавить группу", "add_group")
+			.row()
+			.text("Посмотреть группы", "view_groups"),
+	})
+})
+
 // Команда /add_group с промежуточным сохранением данных
 bot.command("add_group", async ctx => {
 	if (!ctx.session.groupData) {
@@ -126,17 +137,6 @@ bot.on("message:text", async ctx => {
 // 		reply_markup: keyboard,
 // 	})
 // })
-
-bot.command("start", async ctx => {
-	ctx.session.groupData = {} // Очищаем данные сессии
-
-	await ctx.reply("Добро пожаловать! Выберите действие:", {
-		reply_markup: new InlineKeyboard()
-			.text("Добавить группу", "add_group")
-			.row()
-			.text("Посмотреть группы", "view_groups"),
-	})
-})
 
 // Главное меню
 async function showMainMenu(ctx: MyContext) {
