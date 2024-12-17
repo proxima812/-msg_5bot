@@ -61,7 +61,7 @@ bot.command("add_group", async ctx => {
 		ctx.session.groupData = {}
 	}
 	// ctx.session.groupData = {}
-	await ctx.reply("Введите название группы:")
+	await ctx.reply("🍀 Введите название группы:")
 	ctx.session.step = "name"
 })
 
@@ -84,13 +84,13 @@ bot.command("show_groups", async ctx => {
 	for (const group of data) {
 		await bot.api.sendMessage(
 			CHANNEL_ID,
-			`Новая группа добавлена:\nНазвание: ${group.name}\nФормат: ${group.format}\nСообщество: ${group.community}\nОписание: ${group.description}\nСсылка: ${group.link}`,
+			`🍀 **Название:** ${group.name}\n♨ **Формат:** ${group.format}\n👥 **Сообщество:** ${group.community}\n✨ **Описание:** ${group.description}\n🌐 **Ссылка:** ${group.link}`,
+			{ parse_mode: "Markdown" },
 		)
 	}
 
-	await ctx.reply("Все группы были отправлены в канал.")
+	await ctx.reply("Все группы были отправлены в канал..")
 })
-
 
 // Обработка сообщений пользователя для заполнения данных группы
 bot.on("message:text", async ctx => {
@@ -101,20 +101,20 @@ bot.on("message:text", async ctx => {
 	if (step === "name") {
 		ctx.session.groupData.name = ctx.message.text.trim()
 		ctx.session.step = "format"
-		await ctx.reply("Введите формат группы:")
+		await ctx.reply("♨ Введите формат группы:")
 	} else if (step === "format") {
 		ctx.session.groupData.format = ctx.message.text.trim()
 		ctx.session.step = "community"
-		await ctx.reply("Введите сообщество группы:")
+		await ctx.reply("👥 Введите сообщество группы:")
 	} else if (step === "community") {
 		ctx.session.groupData.community = ctx.message.text.trim()
 		ctx.session.step = "description"
-		await ctx.reply("Введите описание группы:")
+		await ctx.reply("✨ Введите описание группы:")
 	} else if (step === "description") {
 		ctx.session.groupData.description = ctx.message.text.trim()
 		ctx.session.step = "link"
 		await ctx.reply(
-			"Введите ссылку на группу:\n👉 Если Telegram, то пишите @Название\n👉 Если другие ссылки, то начинайте с https://",
+			"Ссылка на группу:\n👉 Если Telegram, то пишите @Название\n👉 Если другие ссылки, то начинайте с https://",
 			{ parse_mode: "Markdown" },
 		)
 	} else if (step === "link") {
@@ -142,12 +142,19 @@ bot.on("message:text", async ctx => {
 			}
 
 			// Успешное добавление
-			await ctx.reply("Группа успешно добавлена!")
+			await ctx.reply("**Группа успешно добавлена** 🎉", {
+				parse_mode: "Markdown",
+				reply_markup: new InlineKeyboard().url(
+					"👀 Посмотреть",
+					"https://t.me/trust_unity",
+				),
+			})
 
 			// Публикуем информацию о группе в канал
 			await bot.api.sendMessage(
 				CHANNEL_ID,
-				`Новая группа добавлена:\nНазвание: ${groupData.name}\nФормат: ${groupData.format}\nСообщество: ${groupData.community}\nОписание: ${groupData.description}\nСсылка: ${groupData.link}`,
+				`🍀 **Название:** ${groupData.name}\n♨ **Формат:** ${groupData.format}\n👥 **Сообщество:** ${groupData.community}\n✨ **Описание:** ${groupData.description}\n🌐 **Ссылка:** ${groupData.link}`,
+				{ parse_mode: "Markdown" },
 			)
 
 			// Очистка данных сессии
