@@ -37,8 +37,13 @@ const CHANNEL_ID = "-1002387924511"
 bot.use(session({ initial: (): SessionData => ({ groupData: {} }) }))
 
 bot.command("start", async ctx => {
-	ctx.session.groupData = {} // Очищаем данные сессии
+	// Сбрасываем состояние шага, чтобы начать процесс заново
+	ctx.session.step = undefined
 
+	// Полный сброс сессии
+	// ctx.session = { groupData: {}, step: undefined }
+
+	// Приветственное сообщение и главное меню
 	await ctx.reply("Добро пожаловать! Выберите действие:", {
 		reply_markup: new InlineKeyboard()
 			.text("Добавить группу", "add_group")
