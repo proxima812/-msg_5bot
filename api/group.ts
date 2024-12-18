@@ -1,7 +1,6 @@
 require("dotenv").config()
 import { hydrateReply, parseMode, type ParseModeFlavor } from "@grammyjs/parse-mode"
 import { createClient } from "@supabase/supabase-js"
-
 import {
 	Bot,
 	Context,
@@ -15,10 +14,8 @@ const supabase = createClient(
 	"https://fkwivycaacgpuwfvozlp.supabase.co",
 	process.env.SP_API_SECRET,
 )
-
 const token = process.env.TOKEN
 if (!token) throw new Error("TOKEN is unset")
-
 interface SessionData {
 	groupData: {
 		name?: string
@@ -94,7 +91,6 @@ bot.on("message:text", async ctx => {
 		ctx.session.step = "link"
 		await ctx.reply(
 			"Ссылка на группу:\n👉 Если Telegram, то пишите @Название\n👉 Если другие ссылки, то начинайте с https://",
-			{ parse_mode: "Markdown" },
 		)
 	} else if (step === "link") {
 		ctx.session.groupData.link = ctx.message.text.trim()
@@ -122,12 +118,11 @@ bot.on("message:text", async ctx => {
 
 			await bot.api.sendMessage(
 				CHANNEL_ID,
-				`🍀 **Название:** ${groupData.name}\n♨ **Формат:** ${groupData.format}\n👥 **Сообщество:** ${groupData.community}\n✨ **Описание:** ${groupData.description}\n🌐 **Ссылка:** ${groupData.link}`,
-				{ parse_mode: "Markdown" },
+				`🍀 *Название:* ${groupData.name}\n♨ *Формат:* ${groupData.format}\n👥 *Сообщество:* ${groupData.community}\n✨ *Описание:* ${groupData.description}\n🌐 *Ссылка:* ${groupData.link}`,
 			)
 
 			// Успешное добавление
-			await ctx.reply("**Группа успешно добавлена** 🎉\nВернуться в меню /start", {
+			await ctx.reply("*Группа успешно добавлена* 🎉\nВернуться в меню /start", {
 				parse_mode: "Markdown",
 				reply_markup: new InlineKeyboard().url(
 					"👀 Посмотреть",
