@@ -297,6 +297,71 @@ bot.on("message:text", async ctx => {
 
 	const step = ctx.session.step
 
+	// Логика для команды поиска сообщества
+	if (ctx.message.text === "/search_community") {
+		ctx.session.step = "search_community"
+		await ctx.reply("🔍 Введите сообщество для поиска (например, 'AA'):")
+	} else if (step === "search_community") {
+		const community = ctx.message.text.trim()
+
+		if (!community) {
+			await ctx.reply("❌ Пожалуйста, введите сообщество для поиска.")
+			return
+		}
+
+		try {
+			// Запрос к Supabase для поиска групп по community
+			const { data, error } = await supabase
+				.from("groups")
+				.select("*")
+				.ilike("community", `%${community}%`) // Используем ilike для нечувствительного поиска
+
+			if (error) {
+				console.error("Ошибка при запросе к Supabase:", error)
+				await ctx.reply("Произошла ошибка при поиске сообщества.")
+				return
+			}
+
+			if (data.length === 0) {
+				await ctx.reply(`🔍 Не найдено групп с сообществом "${community}".`)
+				return
+			}
+
+			// Формируем сообщение с результатами поиска
+			for (let groupData of data) {
+				let message = `🍀 *Название:* ${groupData.name}\n\n`
+
+				if (groupData.community && groupData.community !== "-") {
+					message += `👥 *Сообщество:* ${groupData.community}\n`
+				}
+				if (groupData.time && groupData.time !== "-") {
+					message += `⏰ *Время:* ${groupData.time}\n`
+				}
+				if (groupData.format && groupData.format !== "-") {
+					message += `♨ *Формат:* ${groupData.format}\n`
+				}
+				if (groupData.description && groupData.description !== "-") {
+					message += `\n✨ *Описание:* ${groupData.description}\n\n`
+				}
+				if (groupData.contact && groupData.contact !== "-") {
+					message += `🛜 *Контакт:* ${groupData.contact}\n`
+				}
+				if (groupData.link && groupData.link !== "-") {
+					message += `🌐 *Ссылка:* ${groupData.link}`
+				}
+
+				// Отправляем сообщение с найденной группой
+				await bot.api.sendMessage(ctx.chat.id, message, { parse_mode: "Markdown" })
+			}
+			ctx.session.step = undefined
+		} catch (err) {
+			console.error("Ошибка при поиске по сообществу:", err)
+			await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.")
+		}
+  }
+  
+  
+
 	// Пошаговая логика заполнения данных
 	if (step === "name") {
 		ctx.session.groupData.name = ctx.message.text.trim()
@@ -348,7 +413,7 @@ bot.on("message:text", async ctx => {
 			ctx.session.groupData.link = link
 		}
 		ctx.session.step = "contact"
-		await ctx.reply("🛜 Введите контакт *(ПГ / ПГО / Куратор группы):*")
+		await ctx.reply("🛜 Введите контакт *(ПГ / ПГО / Любой другой контакт для связи):*")
 	} else if (step === "contact") {
 		const contact = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -434,6 +499,5 @@ bot.on("message:text", async ctx => {
 		}
 	}
 })
-
 
 export default webhookCallback(bot, "http")
