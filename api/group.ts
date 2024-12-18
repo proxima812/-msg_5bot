@@ -174,32 +174,39 @@ bot.on("message:text", async ctx => {
 	if (step === "name") {
 		ctx.session.groupData.name = ctx.message.text.trim()
 		ctx.session.step = "format"
-		await ctx.reply("♨ Введите формат группы:", {
-			reply_markup: new InlineKeyboard().text("⏩ Пропустить", "skip_format"),
-		})
+		await ctx.reply("♨ Введите формат группы:")
 	} else if (step === "format") {
-		ctx.session.groupData.format = ctx.message.text.trim()
+		const format = ctx.message.text.trim()
+		// Если введено "-", пропускаем этот шаг
+		if (format !== "-") {
+			ctx.session.groupData.format = format
+		}
 		ctx.session.step = "community"
-		await ctx.reply("👥 Введите сообщество группы:", {
-			reply_markup: new InlineKeyboard().text("⏩ Пропустить", "skip_community"),
-		})
+		await ctx.reply("👥 Введите сообщество группы:")
 	} else if (step === "community") {
-		ctx.session.groupData.community = ctx.message.text.trim()
+		const community = ctx.message.text.trim()
+		// Если введено "-", пропускаем этот шаг
+		if (community !== "-") {
+			ctx.session.groupData.community = community
+		}
 		ctx.session.step = "description"
-		await ctx.reply("✨ Введите описание группы:", {
-			reply_markup: new InlineKeyboard().text("⏩ Пропустить", "skip_description"),
-		})
+		await ctx.reply("✨ Введите описание группы:")
 	} else if (step === "description") {
-		ctx.session.groupData.description = ctx.message.text.trim()
+		const description = ctx.message.text.trim()
+		// Если введено "-", пропускаем этот шаг
+		if (description !== "-") {
+			ctx.session.groupData.description = description
+		}
 		ctx.session.step = "link"
 		await ctx.reply(
 			"Ссылка на группу:\n👉 Если Telegram, то пишите @Название\n👉 Если другие ссылки, то начинайте с https://",
-			{
-				reply_markup: new InlineKeyboard().text("⏩ Пропустить", "skip_link"),
-			},
 		)
 	} else if (step === "link") {
-		ctx.session.groupData.link = ctx.message.text.trim()
+		const link = ctx.message.text.trim()
+		// Если введено "-", пропускаем этот шаг
+		if (link !== "-") {
+			ctx.session.groupData.link = link
+		}
 
 		const groupData = ctx.session.groupData
 
@@ -222,10 +229,24 @@ bot.on("message:text", async ctx => {
 				return
 			}
 
-			await bot.api.sendMessage(
-				CHANNEL_ID,
-				`🍀 *Название:* ${groupData.name}\n♨ *Формат:* ${groupData.format}\n👥 *Сообщество:* ${groupData.community}\n✨ *Описание:* ${groupData.description}\n🌐 *Ссылка:* ${groupData.link}`,
-			)
+			// Формируем сообщение для отправки в канал с проверкой на "-".
+			let message = `🍀 *Название:* ${groupData.name}\n`
+
+			if (groupData.format && groupData.format !== "-") {
+				message += `♨ *Формат:* ${groupData.format}\n`
+			}
+			if (groupData.community && groupData.community !== "-") {
+				message += `👥 *Сообщество:* ${groupData.community}\n`
+			}
+			if (groupData.description && groupData.description !== "-") {
+				message += `✨ *Описание:* ${groupData.description}\n`
+			}
+			if (groupData.link && groupData.link !== "-") {
+				message += `🌐 *Ссылка:* ${groupData.link}`
+			}
+
+			// Отправляем сообщение в канал
+			await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "Markdown" })
 
 			// Успешное добавление
 			await ctx.reply("*Группа успешно добавлена* 🎉\nВернуться в меню /start", {
@@ -246,81 +267,6 @@ bot.on("message:text", async ctx => {
 	}
 })
 
-// Обработка нажатия на кнопку "Пропустить"
-bot.on("callback_query", async ctx => {
-	const data = ctx.callbackQuery.data
-
-	if (data.startsWith("skip_")) {
-		const step = data.replace("skip_", "") // Получаем текущий шаг
-
-		// Пропускаем текущий шаг и переходим к следующему
-		await ctx.answerCallbackQuery()
-
-		if (step === "format") {
-			ctx.session.step = "community"
-			await ctx.reply("👥 Введите сообщество группы:", {
-				reply_markup: new InlineKeyboard().text("⏩ Пропустить", "skip_community"),
-			})
-		} else if (step === "community") {
-			ctx.session.step = "description"
-			await ctx.reply("✨ Введите описание группы:", {
-				reply_markup: new InlineKeyboard().text("⏩ Пропустить", "skip_description"),
-			})
-		} else if (step === "description") {
-			ctx.session.step = "link"
-			await ctx.reply(
-				"Ссылка на группу:\n👉 Если Telegram, то пишите @Название\n👉 Если другие ссылки, то начинайте с https://",
-				{
-					reply_markup: new InlineKeyboard().text("⏩ Пропустить", "skip_link"),
-				},
-			)
-		} else if (step === "link") {
-			// Переходим к финальному шагу после пропуска
-			const groupData = ctx.session.groupData
-
-			try {
-				// Сохранение данных в Supabase
-				const { data, error } = await supabase.from("groups").insert([
-					{
-						name: groupData.name,
-						format: groupData.format,
-						community: groupData.community,
-						description: groupData.description,
-						link: groupData.link,
-						created_at: new Date().toISOString(),
-					},
-				])
-
-				if (error) {
-					console.error("Ошибка добавления группы в БД:", error)
-					await ctx.reply("Произошла ошибка при добавлении группы.")
-					return
-				}
-
-				await bot.api.sendMessage(
-					CHANNEL_ID,
-					`🍀 *Название:* ${groupData.name}\n♨ *Формат:* ${groupData.format}\n👥 *Сообщество:* ${groupData.community}\n✨ *Описание:* ${groupData.description}\n🌐 *Ссылка:* ${groupData.link}`,
-				)
-
-				// Успешное добавление
-				await ctx.reply("*Группа успешно добавлена* 🎉\nВернуться в меню /start", {
-					parse_mode: "Markdown",
-					reply_markup: new InlineKeyboard().url(
-						"👀 Посмотреть",
-						"https://t.me/trust_unity",
-					),
-				})
-
-				// Очистка данных сессии
-				ctx.session.groupData = {}
-				ctx.session.step = undefined
-			} catch (err) {
-				console.error("Ошибка при добавлении группы:", err)
-				await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.")
-			}
-		}
-	}
-})
 
 
 export default webhookCallback(bot, "http")
