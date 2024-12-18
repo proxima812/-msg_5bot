@@ -59,6 +59,14 @@ bot.command("start", async ctx => {
 
 // Обработка команды /add_group
 bot.on("callback_query", async ctx => {
+	try {
+		// Ваш код для обработки callback
+		await ctx.answerCallbackQuery("Ответ на callback")
+	} catch (error) {
+		console.error("Ошибка при отправке ответа на callback:", error)
+		// Вы можете отреагировать, если callback слишком старый или произошла ошибка
+	}
+
 	const data = ctx.callbackQuery.data
 
 	if (data === "add_group") {
