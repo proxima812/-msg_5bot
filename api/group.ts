@@ -68,6 +68,32 @@ bot.on("callback_query", async ctx => {
 	}
 })
 
+bot.command("show_groups", async ctx => {
+	// Проверка на ID администратора
+	if (ctx.from.id !== 5522146122) {
+		await ctx.reply("У вас нет прав для использования этой команды.")
+		return
+	}
+
+	// Получаем все группы из базы данных
+	const { data, error } = await supabase.from("groups").select("*")
+
+	if (error || !data || data.length === 0) {
+		await ctx.reply("В базе данных нет групп.")
+		return
+	}
+
+	// Отправляем информацию о группах в канал
+	for (const group of data) {
+		await bot.api.sendMessage(
+			CHANNEL_ID,
+			`🍀 **Название:** ${group.name}\n♨ **Формат:** ${group.format}\n👥 **Сообщество:** ${group.community}\n✨ **Описание:** ${group.description}\n🌐 **Ссылка:** ${group.link}`,
+		)
+	}
+
+	await ctx.reply("Все группы были отправлены в канал..")
+})
+
 // Обработка шагов для добавления группы
 bot.on("message:text", async ctx => {
 	if (ctx.message.text.startsWith("/")) return
