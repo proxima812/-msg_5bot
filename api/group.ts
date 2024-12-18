@@ -171,6 +171,7 @@ bot.on("message:text", async ctx => {
 
 	const step = ctx.session.step
 
+	// Пошаговая логика заполнения данных
 	if (step === "name") {
 		ctx.session.groupData.name = ctx.message.text.trim()
 		ctx.session.step = "format"
@@ -224,6 +225,37 @@ bot.on("message:text", async ctx => {
 
 		const groupData = ctx.session.groupData
 
+		// Проверяем, что все необходимые данные заполнены
+		if (!groupData.name) {
+			await ctx.reply("Ошибка: название группы не указано.")
+			return
+		}
+
+		// Если какое-то обязательное поле не заполнено, завершаем процесс с ошибкой
+		if (!groupData.format || !groupData.community || !groupData.link) {
+			await ctx.reply("Ошибка: не все обязательные поля заполнены.")
+			return
+		}
+
+		// Формируем сообщение для отправки в канал с проверкой на "-"
+		let message = `🍀 *Название:* ${groupData.name}\n`
+
+		if (groupData.format && groupData.format !== "-") {
+			message += `♨ *Формат:* ${groupData.format}\n`
+		}
+		if (groupData.community && groupData.community !== "-") {
+			message += `👥 *Сообщество:* ${groupData.community}\n`
+		}
+		if (groupData.description && groupData.description !== "-") {
+			message += `✨ *Описание:* ${groupData.description}\n`
+		}
+		if (groupData.contact && groupData.contact !== "-") {
+			message += `🛜 *Контакт:* ${groupData.contact}\n`
+		}
+		if (groupData.link && groupData.link !== "-") {
+			message += `🌐 *Ссылка:* ${groupData.link}`
+		}
+
 		try {
 			// Сохранение данных в Supabase
 			const { data, error } = await supabase.from("groups").insert([
@@ -242,25 +274,6 @@ bot.on("message:text", async ctx => {
 				console.error("Ошибка добавления группы в БД:", error)
 				await ctx.reply("Произошла ошибка при добавлении группы.")
 				return
-			}
-
-			// Формируем сообщение для отправки в канал с проверкой на "-".
-			let message = `🍀 *Название:* ${groupData.name}\n`
-
-			if (groupData.format && groupData.format !== "-") {
-				message += `♨ *Формат:* ${groupData.format}\n`
-			}
-			if (groupData.community && groupData.community !== "-") {
-				message += `👥 *Сообщество:* ${groupData.community}\n`
-			}
-			if (groupData.description && groupData.description !== "-") {
-				message += `✨ *Описание:* ${groupData.description}\n`
-			}
-			if (groupData.contact && groupData.contact !== "-") {
-				message += `🛜 *Контакт:* ${groupData.contact}\n`
-			}
-			if (groupData.link && groupData.link !== "-") {
-				message += `🌐 *Ссылка:* ${groupData.link}`
 			}
 
 			// Отправляем сообщение в канал
@@ -284,5 +297,6 @@ bot.on("message:text", async ctx => {
 		}
 	}
 })
+
 
 export default webhookCallback(bot, "http")
