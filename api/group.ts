@@ -167,99 +167,86 @@ bot.on("message:text", async ctx => {
 	}
 })
 
-// Обработчик команды /start
-// bot.command("start", async ctx => {
-// 	const keyboard = new InlineKeyboard()
-// 		.text("Добавить группу", "add_group")
-// 		.row()
-// 		.text("Посмотреть свои группы", "view_groups")
-// 		.row()
-
-// 	await ctx.reply("Выберите действие:", {
-// 		reply_markup: keyboard,
-// 	})
-// })
-
 // Главное меню
-// async function showMainMenu(ctx: MyContext) {
-// 	const keyboard = new InlineKeyboard()
-// 		.text("Добавить группу", "add_group")
-// 		.row()
-// 		.text("Посмотреть группы", "view_groups")
+async function showMainMenu(ctx: MyContext) {
+	const keyboard = new InlineKeyboard()
+		.text("Добавить группу", "add_group")
+		.row()
+		.text("Посмотреть группы", "view_groups")
 
-// 	await ctx.reply("Выберите действие:", {
-// 		reply_markup: keyboard,
-// 	})
-// }
+	await ctx.reply("Выберите действие:", {
+		reply_markup: keyboard,
+	})
+}
 
 // Обработчик нажатия на кнопки
-// bot.on("callback_query", async ctx => {
-// 	const data = ctx.callbackQuery.data
+bot.on("callback_query", async ctx => {
+	const data = ctx.callbackQuery.data
 
-// 	if (data === "add_group") {
-// 		await ctx.answerCallbackQuery()
-// 		await ctx.reply("Чтобы добавить группу, используйте команду /add_group")
+	if (data === "add_group") {
+		await ctx.answerCallbackQuery()
+		await ctx.reply("Чтобы добавить группу, используйте команду /add_group")
 
-// 		const keyboard = new InlineKeyboard().text("⬅️ Назад", "main_menu")
-// 		await ctx.reply("Вернуться в главное меню:", {
-// 			reply_markup: keyboard,
-// 		})
-// 	} else if (data === "view_groups") {
-// 		const userId = ctx.from.id
+		const keyboard = new InlineKeyboard().text("⬅️ Назад", "main_menu")
+		await ctx.reply("Вернуться в главное меню:", {
+			reply_markup: keyboard,
+		})
+	} else if (data === "view_groups") {
+		const userId = ctx.from.id
 
-// 		// Получаем группы пользователя из Supabase
-// 		const { data, error } = await supabase
-// 			.from("groups")
-// 			.select("*")
-// 			.eq("user_id", userId)
+		// Получаем группы пользователя из Supabase
+		const { data, error } = await supabase
+			.from("groups")
+			.select("*")
+			.eq("user_id", userId)
 
-// 		if (error || !data || data.length === 0) {
-// 			await ctx.answerCallbackQuery()
-// 			await ctx.reply("У вас нет добавленных групп.")
+		if (error || !data || data.length === 0) {
+			await ctx.answerCallbackQuery()
+			await ctx.reply("У вас нет добавленных групп.")
 
-// 			const keyboard = new InlineKeyboard().text("⬅️ Назад", "main_menu")
-// 			await ctx.reply("Вернуться в главное меню:", {
-// 				reply_markup: keyboard,
-// 			})
-// 			return
-// 		}
+			const keyboard = new InlineKeyboard().text("⬅️ Назад", "main_menu")
+			await ctx.reply("Вернуться в главное меню:", {
+				reply_markup: keyboard,
+			})
+			return
+		}
 
-// 		const keyboard = new InlineKeyboard()
-// 		data.forEach(group => {
-// 			const shortDesc =
-// 				group.name.length > 30 ? `${group.name.slice(0, 30)}...` : group.name
-// 			keyboard.text(`#${group.id}: ${shortDesc}`, `view_group_${group.id}`).row()
-// 		})
-// 		keyboard.text("⬅️ Назад", "main_menu")
+		const keyboard = new InlineKeyboard()
+		data.forEach(group => {
+			const shortDesc =
+				group.name.length > 30 ? `${group.name.slice(0, 30)}...` : group.name
+			keyboard.text(`#${group.id}: ${shortDesc}`, `view_group_${group.id}`).row()
+		})
+		keyboard.text("⬅️ Назад", "main_menu")
 
-// 		await ctx.answerCallbackQuery()
-// 		await ctx.reply("Ваши группы:", {
-// 			reply_markup: keyboard,
-// 		})
-// 	} else if (data === "main_menu") {
-// 		await ctx.answerCallbackQuery()
-// 		await showMainMenu(ctx)
-// 	} else if (data.startsWith("view_group_")) {
-// 		const groupId = data.replace("view_group_", "")
+		await ctx.answerCallbackQuery()
+		await ctx.reply("Ваши группы:", {
+			reply_markup: keyboard,
+		})
+	} else if (data === "main_menu") {
+		await ctx.answerCallbackQuery()
+		await showMainMenu(ctx)
+	} else if (data.startsWith("view_group_")) {
+		const groupId = data.replace("view_group_", "")
 
-// 		const { data, error } = await supabase
-// 			.from("groups")
-// 			.select("*")
-// 			.eq("id", groupId)
-// 			.single()
+		const { data, error } = await supabase
+			.from("groups")
+			.select("*")
+			.eq("id", groupId)
+			.single()
 
-// 		if (error || !data) {
-// 			await ctx.answerCallbackQuery("Группа не найдена.")
-// 			return
-// 		}
+		if (error || !data) {
+			await ctx.answerCallbackQuery("Группа не найдена.")
+			return
+		}
 
-// 		await ctx.answerCallbackQuery()
-// 		await ctx.reply(
-// 			`#${data.id}:\nНазвание: ${data.name}\nФормат: ${data.format}\nСообщество: ${data.community}\nОписание: ${data.description}\nСсылка: ${data.link}`,
-// 		)
-// 	} else {
-// 		await ctx.answerCallbackQuery({ text: "Неизвестная команда." })
-// 	}
-// })
+		await ctx.answerCallbackQuery()
+		await ctx.reply(
+			`#${data.id}:\nНазвание: ${data.name}\nФормат: ${data.format}\nСообщество: ${data.community}\nОписание: ${data.description}\nСсылка: ${data.link}`,
+		)
+	} else {
+		await ctx.answerCallbackQuery({ text: "Неизвестная команда." })
+	}
+})
 
 export default webhookCallback(bot, "http")
