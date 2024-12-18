@@ -254,6 +254,8 @@ bot.on("callback_query", async ctx => {
 		const step = data.replace("skip_", "") // Получаем текущий шаг
 
 		// Пропускаем текущий шаг и переходим к следующему
+		await ctx.answerCallbackQuery()
+
 		if (step === "format") {
 			ctx.session.step = "community"
 			await ctx.reply("👥 Введите сообщество группы:", {
