@@ -230,7 +230,7 @@ bot.on("message:text", async ctx => {
 		}
 
 		// Если какое-то обязательное поле не заполнено, завершаем процесс с ошибкой
-		if (!groupData.format || !groupData.community || !groupData.link) {
+		if (!groupData.name || !groupData.community || !groupData.contact) {
 			await ctx.reply("Ошибка: не все обязательные поля заполнены.")
 			return
 		}
