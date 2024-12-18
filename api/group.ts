@@ -182,7 +182,9 @@ bot.on("message:text", async ctx => {
 			ctx.session.groupData.format = format
 		}
 		ctx.session.step = "community"
-		await ctx.reply("👥 Введите сообщество группы:")
+		await ctx.reply(
+			"👥 Введите сообщество группы:\n\n❌‼ _(Если нет информации, пишите -)_",
+		)
 	} else if (step === "community") {
 		const community = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -199,15 +201,20 @@ bot.on("message:text", async ctx => {
 		if (description !== "-") {
 			ctx.session.groupData.description = description
 		}
+		ctx.session.step = "contact"
+		await ctx.reply(
+			"🛜 Введите контакт (ПГ/ПГО/Куратор группы):\n\n❌‼ _(Если нет информации, пишите -)_",
+		)
+	} else if (step === "contact") {
+		const contact = ctx.message.text.trim()
+		// Если введено "-", пропускаем этот шаг
+		if (contact !== "-") {
+			ctx.session.groupData.contact = contact
+		}
 		ctx.session.step = "link"
 		await ctx.reply(
 			"Ссылка на группу:\n👉 Если *Telegram*, то пишите *@Название*\n👉 Если другие ссылки, то начинайте с *https://*\n\n❌‼ _(Если нет информации, пишите -)_",
 		)
-	} else if (step === "contact") {
-		const contact = ctx.message.text.trim()
-		ctx.session.groupData.contact = contact
-		ctx.session.step = "link"
-		await ctx.reply("🛜 *Контакты:* (ПГ/ПГО/ Куратор группы.)")
 	} else if (step === "link") {
 		const link = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -243,14 +250,14 @@ bot.on("message:text", async ctx => {
 			if (groupData.format && groupData.format !== "-") {
 				message += `♨ *Формат:* ${groupData.format}\n`
 			}
-			if (groupData.community) {
+			if (groupData.community && groupData.community !== "-") {
 				message += `👥 *Сообщество:* ${groupData.community}\n`
 			}
 			if (groupData.description && groupData.description !== "-") {
 				message += `✨ *Описание:* ${groupData.description}\n`
 			}
-			if (groupData.contact) {
-				message += `🛜 *Контакт:* ${groupData.contact}`
+			if (groupData.contact && groupData.contact !== "-") {
+				message += `🛜 *Контакт:* ${groupData.contact}\n`
 			}
 			if (groupData.link && groupData.link !== "-") {
 				message += `🌐 *Ссылка:* ${groupData.link}`
