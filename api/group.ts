@@ -115,7 +115,9 @@ bot.on("message:text", async ctx => {
 			// Успешное добавление
 			await ctx.reply("**Группа успешно добавлена** 🎉", {
 				parse_mode: "Markdown",
-				reply_markup: new InlineKeyboard().text("Вернуться в меню", "go_to_start"),
+				reply_markup: new InlineKeyboard()
+					.text("Вернуться в меню", "go_to_start")
+					.url("👀 Посмотреть", "https://t.me/trust_unity"),
 			})
 
 			// Очистка данных сессии
