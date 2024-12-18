@@ -174,7 +174,7 @@ bot.on("message:text", async ctx => {
 	if (step === "name") {
 		ctx.session.groupData.name = ctx.message.text.trim()
 		ctx.session.step = "format"
-		await ctx.reply("♨ Введите формат группы:")
+		await ctx.reply("♨ Введите формат группы:\n\n_(Если нет информации, пишите -)_")
 	} else if (step === "format") {
 		const format = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -190,7 +190,7 @@ bot.on("message:text", async ctx => {
 			ctx.session.groupData.community = community
 		}
 		ctx.session.step = "description"
-		await ctx.reply("✨ Введите описание группы:")
+		await ctx.reply("✨ Введите описание группы:\n\n_(Если нет информации, пишите -)_")
 	} else if (step === "description") {
 		const description = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -199,7 +199,7 @@ bot.on("message:text", async ctx => {
 		}
 		ctx.session.step = "link"
 		await ctx.reply(
-			"Ссылка на группу:\n👉 Если Telegram, то пишите @Название\n👉 Если другие ссылки, то начинайте с https://",
+			"Ссылка на группу:\n👉 Если *Telegram*, то пишите *@Название*\n👉 Если другие ссылки, то начинайте с *https://*\n\n_(Если нет информации, пишите -)_",
 		)
 	} else if (step === "link") {
 		const link = ctx.message.text.trim()
@@ -266,7 +266,5 @@ bot.on("message:text", async ctx => {
 		}
 	}
 })
-
-
 
 export default webhookCallback(bot, "http")
