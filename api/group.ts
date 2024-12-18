@@ -63,7 +63,7 @@ bot.on("callback_query", async ctx => {
 
 	if (data === "add_group") {
 		await ctx.answerCallbackQuery()
-		await ctx.reply("🍀 Введите название группы:")
+		await ctx.reply("🍀 *Введите название группы:")
 		ctx.session.step = "name" // Переход к следующему шагу
 	}
 })
@@ -175,7 +175,7 @@ bot.on("message:text", async ctx => {
 	if (step === "name") {
 		ctx.session.groupData.name = ctx.message.text.trim()
 		ctx.session.step = "format"
-		await ctx.reply("♨ Введите формат группы:\n\n❌‼ _(Если нет информации, пишите -)_")
+		await ctx.reply("♨ Введите формат группы:\n\n❌ _(Если нет информации, пишите -)_")
 	} else if (step === "format") {
 		const format = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -183,9 +183,7 @@ bot.on("message:text", async ctx => {
 			ctx.session.groupData.format = format
 		}
 		ctx.session.step = "community"
-		await ctx.reply(
-			"👥 Введите сообщество группы:\n\n❌‼ _(Если нет информации, пишите -)_",
-		)
+		await ctx.reply("👥 *Введите сообщество группы:")
 	} else if (step === "community") {
 		const community = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -193,9 +191,7 @@ bot.on("message:text", async ctx => {
 			ctx.session.groupData.community = community
 		}
 		ctx.session.step = "description"
-		await ctx.reply(
-			"✨ Введите описание группы:\n\n❌‼ _(Если нет информации, пишите -)_",
-		)
+		await ctx.reply("✨ Введите описание группы:\n\n❌ _(Если нет информации, пишите -)_")
 	} else if (step === "description") {
 		const description = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -203,7 +199,7 @@ bot.on("message:text", async ctx => {
 			ctx.session.groupData.description = description
 		}
 		ctx.session.step = "contact"
-		await ctx.reply("🛜 Введите контакт *(ПГ / ПГО / Куратор группы):*")
+		await ctx.reply("🛜 *Введите контакт *(ПГ / ПГО / Куратор группы):*")
 	} else if (step === "contact") {
 		const contact = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -212,7 +208,7 @@ bot.on("message:text", async ctx => {
 		}
 		ctx.session.step = "link"
 		await ctx.reply(
-			"Ссылка на группу:\n👉 Если *Telegram*, то пишите *@Название*\n👉 Если другие ссылки, то начинайте с *https://*\n\n❌‼ _(Если нет информации, пишите -)_",
+			"Ссылка на группу:\n👉 Если *Telegram*, то пишите *@Название*\n👉 Если другие ссылки, то начинайте с *https://*\n\n❌ _(Если нет информации, пишите -)_",
 		)
 	} else if (step === "link") {
 		const link = ctx.message.text.trim()
@@ -231,7 +227,10 @@ bot.on("message:text", async ctx => {
 
 		// Если какое-то обязательное поле не заполнено, завершаем процесс с ошибкой
 		if (!groupData.name || !groupData.community || !groupData.contact) {
-			await ctx.reply("Ошибка: не все обязательные поля заполнены.")
+			await ctx.reply(
+				"Ошибка: не все обязательные поля заполнены: *название, сообщество, контакт.*",
+				{ parseMode: "Markdown" },
+			)
 			return
 		}
 
