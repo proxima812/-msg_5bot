@@ -294,7 +294,7 @@ bot.command("show_groups", async ctx => {
 
 // Новый код
 bot.on("message:text", async ctx => {
-	if (ctx.message.text.startsWith("/")) return
+	// if (ctx.message.text.startsWith("/")) return
 
 	const step = ctx.session.step
 
