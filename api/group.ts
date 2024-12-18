@@ -1,5 +1,7 @@
 require("dotenv").config()
+import { hydrateReply, parseMode, type ParseModeFlavor } from "@grammyjs/parse-mode"
 import { createClient } from "@supabase/supabase-js"
+
 import {
 	Bot,
 	Context,
@@ -28,13 +30,19 @@ interface SessionData {
 	step?: string
 }
 
-type MyContext = Context & SessionFlavor<SessionData>
+// type MyContext = Context & SessionFlavor<SessionData>
+type MyContext = Context & SessionFlavor<SessionData> & ParseModeFlavor
 
 const bot = new Bot<MyContext>(token)
 const CHANNEL_ID = "-1002387924511"
 
 // Middleware для сессий
-bot.use(session({ initial: (): SessionData => ({ groupData: {} }) }))
+// bot.use(session({ initial: (): SessionData => ({ groupData: {} }) }))
+
+// Устанавливаем плагины
+bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
+bot.use(hydrateReply) // для гидратирования ответов
+bot.api.config.use(parseMode("Markdown")) // для установки режима парсинга по умолчанию
 
 // Команда /start для приветствия и начала процесса добавления группы
 bot.command("start", async ctx => {
@@ -112,12 +120,19 @@ bot.on("message:text", async ctx => {
 				return
 			}
 
+			await bot.api.sendMessage(
+				CHANNEL_ID,
+				`🍀 **Название:** ${groupData.name}\n♨ **Формат:** ${groupData.format}\n👥 **Сообщество:** ${groupData.community}\n✨ **Описание:** ${groupData.description}\n🌐 **Ссылка:** ${groupData.link}`,
+				{ parse_mode: "Markdown" },
+			)
+
 			// Успешное добавление
-			await ctx.reply("**Группа успешно добавлена** 🎉", {
+			await ctx.reply("**Группа успешно добавлена** 🎉\nВернуться в меню /start", {
 				parse_mode: "Markdown",
-				reply_markup: new InlineKeyboard()
-					.text("Вернуться в меню", "go_to_start")
-					.url("👀 Посмотреть", "https://t.me/trust_unity"),
+				reply_markup: new InlineKeyboard().url(
+					"👀 Посмотреть",
+					"https://t.me/trust_unity",
+				),
 			})
 
 			// Очистка данных сессии
@@ -127,23 +142,6 @@ bot.on("message:text", async ctx => {
 			console.error("Ошибка при добавлении группы:", err)
 			await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.")
 		}
-	}
-})
-
-// Обработка нажатия на кнопку "Вернуться в меню"
-bot.on("callback_query", async ctx => {
-	const data = ctx.callbackQuery.data
-
-	if (data === "go_to_start") {
-		await ctx.answerCallbackQuery()
-		await ctx.reply("Возвращаемся в главное меню...", {
-			reply_markup: new InlineKeyboard()
-				.text("🔥 Добавить группу 🔥", "add_group")
-				.row()
-				.url("👥 Канал, где будет ваша группа", "https://t.me/trust_unity")
-				.row()
-				.url("🌐 Сайт, где будет ваша группа", "https://example.com"),
-		})
 	}
 })
 

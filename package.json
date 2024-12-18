@@ -10,6 +10,7 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
+		"@grammyjs/parse-mode": "^1.10.0",
 		"@supabase/supabase-js": "^2.47.3",
 		"axios": "^1.7.9",
 		"dotenv": "^16.4.4",
