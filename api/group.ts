@@ -203,9 +203,7 @@ bot.on("message:text", async ctx => {
 			ctx.session.groupData.description = description
 		}
 		ctx.session.step = "contact"
-		await ctx.reply(
-			"🛜 Введите контакт (ПГ/ПГО/Куратор группы):\n\n❌‼ _(Если нет информации, пишите -)_",
-		)
+		await ctx.reply("🛜 Введите контакт *(ПГ / ПГО / Куратор группы):*")
 	} else if (step === "contact") {
 		const contact = ctx.message.text.trim()
 		// Если введено "-", пропускаем этот шаг
@@ -297,6 +295,5 @@ bot.on("message:text", async ctx => {
 		}
 	}
 })
-
 
 export default webhookCallback(bot, "http")
