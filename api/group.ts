@@ -167,6 +167,19 @@ bot.on("message:text", async ctx => {
 	}
 })
 
+// Обработчик команды /start
+// bot.command("start", async ctx => {
+// 	const keyboard = new InlineKeyboard()
+// 		.text("Добавить группу", "add_group")
+// 		.row()
+// 		.text("Посмотреть свои группы", "view_groups")
+// 		.row()
+
+// 	await ctx.reply("Выберите действие:", {
+// 		reply_markup: keyboard,
+// 	})
+// })
+
 // Главное меню
 async function showMainMenu(ctx: MyContext) {
 	const keyboard = new InlineKeyboard()
