@@ -1,6 +1,6 @@
 {
 	"functions": {
-		"api/bot.ts": {
+		"api/group.ts": {
 			"memory": 1024,
 			"maxDuration": 10
 		}
