@@ -1,50 +1,31 @@
+"use strict"
+Object.defineProperty(exports, "__esModule", { value: true })
 require("dotenv").config()
-import { hydrateReply, parseMode, type ParseModeFlavor } from "@grammyjs/parse-mode"
-import { createClient } from "@supabase/supabase-js"
-import {
-	Bot,
-	Context,
-	InlineKeyboard,
-	session,
-	SessionFlavor,
-	webhookCallback,
-} from "grammy"
-
-const supabase = createClient(
+const parse_mode_1 = require("@grammyjs/parse-mode")
+const supabase_js_1 = require("@supabase/supabase-js")
+const grammy_1 = require("grammy")
+const supabase = (0, supabase_js_1.createClient)(
 	"https://fkwivycaacgpuwfvozlp.supabase.co",
-	process.env.SP_API_SECRET,
+	"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrd2l2eWNhYWNncHV3ZnZvemxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5MDc4MTEsImV4cCI6MjA0OTQ4MzgxMX0.44dYay0RWos4tqwuj6H-ylqN4TrAIabeQLNzBn6Xuy0",
 )
-const token = process.env.TOKEN
+const token = "7930164051:AAHF4GdP_jpjOiBl6ZCA1gY8HJZ-VH3A520"
 if (!token) throw new Error("TOKEN is unset")
-interface SessionData {
-	groupData: {
-		name?: string
-		format?: string
-		community?: string
-		description?: string
-		link?: string
-	}
-	step?: string
-}
-
-type MyContext = Context & SessionFlavor<SessionData> & ParseModeFlavor
-
-const bot = new Bot<MyContext>(token)
+const bot = new grammy_1.Bot(token)
 const CHANNEL_ID = "-1002387924511"
 
-// Устанавливаем плагины
-bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
-bot.use(hydrateReply) // для гидратирования ответов
-bot.api.config.use(parseMode("Markdown")) // для установки режима парсинга по умолчанию
+const CHANNEL_IDS = ["-1002387924511", "-1002442910746", "-1002167754817"] // Доверие, Groups12, The final 12 steps
 
+bot.use((0, grammy_1.session)({ initial: () => ({ step: undefined, groupData: {} }) }))
+
+bot.use(parse_mode_1.hydrateReply) // для гидратирования ответов
+bot.api.config.use((0, parse_mode_1.parseMode)("Markdown")) // для установки режима парсинга по умолчанию
 // Команда /start для приветствия и начала процесса добавления группы
 bot.command("start", async ctx => {
 	// Сбрасываем состояние шага
 	ctx.session.step = undefined
-
 	// Приветственное сообщение с кнопками
 	await ctx.reply("Добро пожаловать! Выберите действие:", {
-		reply_markup: new InlineKeyboard()
+		reply_markup: new grammy_1.InlineKeyboard()
 			.text("🔥 Добавить группу 🔥", "add_group")
 			.row()
 			.url("👥 Канал, где будет ваша группа", "https://t.me/trust_unity")
@@ -60,7 +41,28 @@ bot.command("start", async ctx => {
 	})
 })
 
-// Обработка команды /add_group
+bot.command("show_groups", async ctx => {
+	// Проверка на ID администратора
+	if (ctx.from.id !== 5522146122) {
+		await ctx.reply("У вас нет прав для использования этой команды.")
+		return
+	}
+	// Получаем все группы из базы данных
+	const { data, error } = await supabase.from("groups").select("*")
+	if (error || !data || data.length === 0) {
+		await ctx.reply("В базе данных нет групп.")
+		return
+	}
+	// Отправляем информацию о группах в канал
+	for (const group of data) {
+		await bot.api.sendMessage(
+			CHANNEL_ID,
+			`🍀 **Название:** ${group.name}\n♨ **Формат:** ${group.format}\n👥 **Сообщество:** ${group.community}\n✨ **Описание:** ${group.description}\n🌐 **Ссылка:** ${group.link}`,
+		)
+	}
+	await ctx.reply("Все группы были отправлены в канал..")
+})
+
 bot.on("callback_query", async ctx => {
 	const data = ctx.callbackQuery.data
 
@@ -72,12 +74,12 @@ bot.on("callback_query", async ctx => {
 		)
 	}
 
-	// Добавить группу
 	if (data === "add_group") {
 		await ctx.answerCallbackQuery()
 		await ctx.reply("🍀 Введите название группы:")
 		ctx.session.step = "name" // Переход к следующему шагу
 	}
+
 	// Поиск по сообществу
 	if (data === "search_community") {
 		await ctx.answerCallbackQuery()
@@ -91,36 +93,46 @@ bot.on("callback_query", async ctx => {
 		ctx.session.step = "search_time" // Устанавливаем шаг для поиска
 		await ctx.reply("🔍 Введите время для поиска (формат 00:00):")
 	}
+
+	// Поиск по времени
+	if (data === "search_format") {
+		await ctx.answerCallbackQuery()
+		ctx.session.step = "search_format" // Устанавливаем шаг для поиска
+
+		try {
+			// Получаем все уникальные форматы из базы данных
+			const { data: formats, error } = await supabase
+				.from("groups")
+				.select("format")
+				.neq("format", "-") // Исключаем пустые или невалидные форматы
+
+			if (error || !formats || formats.length === 0) {
+				await ctx.reply("Форматы не найдены.")
+				return
+			}
+
+			// Извлекаем уникальные значения форматов
+			const uniqueFormats = [...new Set(formats.map(item => item.format))]
+
+			// Формируем строку с форматами, разделенными новой строкой
+			const formatsString = uniqueFormats.join("\n")
+
+			// Отправляем пользователю строку с форматами в моноширинном режиме
+			await ctx.reply(
+				`♨ *Доступные форматы:*\n\n${formatsString}\n\n👇 Введите формат в чат, для поиска 👇`,
+				{
+					parse_mode: "Markdown",
+				},
+			)
+		} catch (error) {
+			console.error("Ошибка при получении форматов из базы данных:", error)
+			await ctx.reply("Произошла ошибка при загрузке форматов. Попробуйте позже.")
+		}
+	}
 })
 
-bot.command("show_groups", async ctx => {
-	// Проверка на ID администратора
-	if (ctx.from.id !== 5522146122) {
-		await ctx.reply("У вас нет прав для использования этой команды.")
-		return
-	}
-
-	// Получаем все группы из базы данных
-	const { data, error } = await supabase.from("groups").select("*")
-
-	if (error || !data || data.length === 0) {
-		await ctx.reply("В базе данных нет групп.")
-		return
-	}
-
-	// Отправляем информацию о группах в канал
-	for (const group of data) {
-		await bot.api.sendMessage(
-			CHANNEL_ID,
-			`🍀 **Название:** ${group.name}\n♨ **Формат:** ${group.format}\n👥 **Сообщество:** ${group.community}\n✨ **Описание:** ${group.description}\n🌐 **Ссылка:** ${group.link}`,
-		)
-	}
-
-	await ctx.reply("Все группы были отправлены в канал..")
-})
-
-// Новый код
 bot.on("message:text", async ctx => {
+	// if (ctx.message.text.startsWith("/")) return
 	const step = ctx.session.step
 	// Поиск по сообществу
 	if (step === "search_community") {
@@ -147,15 +159,17 @@ bot.on("message:text", async ctx => {
 		}
 
 		// Предложение выполнить еще один поиск
-		await ctx.reply("Найти еще группы по времени или же по сообществу?", {
-			reply_markup: new InlineKeyboard()
+		await ctx.reply("Найти еще группы по времени, по сообществу или же по формату?", {
+			reply_markup: new grammy_1.InlineKeyboard()
 				.text("🔍 Поиск по сообществу", "search_community")
+				.text("⏰ Поиск по времени", "search_time")
 				.row()
-				.text("⏰ Поиск по времени", "search_time"),
+				.text("♨ Поиск по формату", "search_format"),
 		})
 
 		ctx.session.step = undefined // Сбрасываем шаг
 	}
+
 	// Поиск по формату
 	if (step === "search_format") {
 		const format = ctx.message.text.trim()
@@ -182,7 +196,7 @@ bot.on("message:text", async ctx => {
 
 		// Предложение выполнить еще один поиск
 		await ctx.reply("Найти еще группы по времени, по сообществу или же по формату?", {
-			reply_markup: new InlineKeyboard()
+			reply_markup: new grammy_1.InlineKeyboard()
 				.text("🔍 Поиск по сообществу", "search_community")
 				.text("⏰ Поиск по времени", "search_time")
 				.row()
@@ -191,6 +205,7 @@ bot.on("message:text", async ctx => {
 
 		ctx.session.step = undefined // Сбрасываем шаг
 	}
+
 	// Поиск по времени
 	else if (step === "search_time") {
 		const time = ctx.message.text.trim()
@@ -212,11 +227,12 @@ bot.on("message:text", async ctx => {
 		}
 
 		// Предложение выполнить еще один поиск
-		await ctx.reply("Найти еще группы по времени или же по сообществу?", {
-			reply_markup: new InlineKeyboard()
+		await ctx.reply("Найти еще группы по времени, по сообществу или же по формату?", {
+			reply_markup: new grammy_1.InlineKeyboard()
 				.text("🔍 Поиск по сообществу", "search_community")
+				.text("⏰ Поиск по времени", "search_time")
 				.row()
-				.text("⏰ Поиск по времени", "search_time"),
+				.text("♨ Поиск по формату", "search_format"),
 		})
 
 		ctx.session.step = undefined // Сбрасываем шаг
@@ -337,13 +353,18 @@ bot.on("message:text", async ctx => {
 				return
 			}
 
-			// Отправляем сообщение в канал
-			await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "Markdown" })
+			// // Отправляем сообщение в канал
+			// await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "Markdown" })
+
+			// Цикл для отправки сообщения в каждый канал
+			for (const channelId of CHANNEL_IDS) {
+				await bot.api.sendMessage(channelId, message, { parse_mode: "Markdown" })
+			}
 
 			// Успешное добавление
 			await ctx.reply("*Группа успешно добавлена* 🎉\nВернуться в меню /start", {
 				parse_mode: "Markdown",
-				reply_markup: new InlineKeyboard().url(
+				reply_markup: new grammy_1.InlineKeyboard().url(
 					"👀 Посмотреть",
 					"https://t.me/trust_unity",
 				),
@@ -359,4 +380,5 @@ bot.on("message:text", async ctx => {
 	}
 })
 
-export default webhookCallback(bot, "http")
+// exports.default = (0, grammy_1.webhookCallback)(bot, "http")
+bot.start()
