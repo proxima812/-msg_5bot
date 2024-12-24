@@ -324,23 +324,23 @@ bot.on("message:text", async ctx => {
 			message += `🌐 *Ссылка:* ${groupData.link}`
 		}
 
-		// Формируем строку с хэштегами
-		let hashtags = "\n\n"
-		if (groupData.format && groupData.format !== "-") {
-			hashtags += `#${groupData.format}, `
-		}
-		if (groupData.community && groupData.community !== "-") {
-			hashtags += `#${groupData.community}, `
-		}
-		if (groupData.time && groupData.time !== "-") {
-			hashtags += `#${groupData.time.replace(":", "_")}, `
-		}
+		// // Формируем строку с хэштегами
+		// let hashtags = "\n\n"
+		// if (groupData.format && groupData.format !== "-") {
+		// 	hashtags += `#${groupData.format}, `
+		// }
+		// if (groupData.community && groupData.community !== "-") {
+		// 	hashtags += `#${groupData.community}, `
+		// }
+		// if (groupData.time && groupData.time !== "-") {
+		// 	hashtags += `#${groupData.time.replace(":", "_")}, `
+		// }
 
-		// Убираем лишнюю запятую и пробел в конце строки с хэштегами
-		hashtags = hashtags.trim().replace(/,$/, "")
+		// // Убираем лишнюю запятую и пробел в конце строки с хэштегами
+		// hashtags = hashtags.trim().replace(/,$/, "")
 
-		// Добавляем хэштеги к сообщению
-		message += hashtags
+		// // Добавляем хэштеги к сообщению
+		// message += hashtags
 
 		try {
 			// Сохранение данных в Supabase
