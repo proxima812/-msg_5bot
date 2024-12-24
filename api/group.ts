@@ -325,15 +325,15 @@ bot.on("message:text", async ctx => {
 		}
 
 		// Формируем строку с хэштегами
-		let hashtags = "\n\n"
+		let hashtags = "\n\n\n"
 		if (groupData.format && groupData.format !== "-") {
-			hashtags += `#[${groupData.format}], `
+			hashtags += `#${groupData.format}, `
 		}
 		if (groupData.community && groupData.community !== "-") {
-			hashtags += `#[${groupData.community}], `
+			hashtags += `#${groupData.community}, `
 		}
 		if (groupData.time && groupData.time !== "-") {
-			hashtags += `#[${groupData.time}], `
+			hashtags += `#${groupData.time}, `
 		}
 
 		// Убираем лишнюю запятую и пробел в конце строки с хэштегами
