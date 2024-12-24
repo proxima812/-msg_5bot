@@ -32,6 +32,9 @@ type MyContext = Context & SessionFlavor<SessionData> & ParseModeFlavor
 const bot = new Bot<MyContext>(token)
 const CHANNEL_ID = "-1002387924511"
 
+// Пишешь idшники каналов, куда постить автоматом записи.
+// const CHANNEL_IDS = ["channel_id_1", "channel_id_2", "channel_id_3"]
+
 // Устанавливаем плагины
 bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
 bot.use(hydrateReply) // для гидратирования ответов
@@ -115,6 +118,11 @@ bot.command("show_groups", async ctx => {
 			`🍀 **Название:** ${group.name}\n♨ **Формат:** ${group.format}\n👥 **Сообщество:** ${group.community}\n✨ **Описание:** ${group.description}\n🌐 **Ссылка:** ${group.link}`,
 		)
 	}
+
+	// Цикл для отправки сообщения в каждый канал
+	// for (const channelId of CHANNEL_IDS) {
+	// 	await bot.api.sendMessage(channelId, message, { parse_mode: "Markdown" })
+	// }
 
 	await ctx.reply("Все группы были отправлены в канал..")
 })
@@ -315,6 +323,24 @@ bot.on("message:text", async ctx => {
 		if (groupData.link && groupData.link !== "-") {
 			message += `🌐 *Ссылка:* ${groupData.link}`
 		}
+
+		// Формируем строку с хэштегами
+		let hashtags = "\n\n"
+		if (groupData.format && groupData.format !== "-") {
+			hashtags += `#[${groupData.format}], `
+		}
+		if (groupData.community && groupData.community !== "-") {
+			hashtags += `#[${groupData.community}], `
+		}
+		if (groupData.time && groupData.time !== "-") {
+			hashtags += `#[${groupData.time}], `
+		}
+
+		// Убираем лишнюю запятую и пробел в конце строки с хэштегами
+		hashtags = hashtags.trim().replace(/,$/, "")
+
+		// Добавляем хэштеги к сообщению
+		message += hashtags
 
 		try {
 			// Сохранение данных в Supabase
