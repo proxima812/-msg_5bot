@@ -302,26 +302,47 @@ bot.on("message:text", async ctx => {
 			return
 		}
 
+		// Функция для экранирования текста для Markdown
+		function escapeMarkdown(text) {
+			return text
+				.replace(/_/g, "\\_") // Экранируем _
+				.replace(/\*/g, "\\*") // Экранируем *
+				.replace(/\[/g, "\\[") // Экранируем [
+				.replace(/]/g, "\\]") // Экранируем ]
+				.replace(/\(/g, "\\(") // Экранируем (
+				.replace(/\)/g, "\\)") // Экранируем )
+				.replace(/~/g, "\\~") // Экранируем ~
+				.replace(/`/g, "\\`") // Экранируем `
+				.replace(/>/g, "\\>") // Экранируем >
+				.replace(/#/g, "\\#") // Экранируем #
+				.replace(/\+/g, "\\+") // Экранируем +
+				.replace(/-/g, "\\-") // Экранируем -
+				.replace(/=/g, "\\=") // Экранируем =
+				.replace(/\|/g, "\\|") // Экранируем |
+				.replace(/\./g, "\\.") // Экранируем .
+				.replace(/!/g, "\\!") // Экранируем !
+		}
+
 		// Формируем сообщение для отправки в канал с проверкой на "-"
-		let message = `🍀 *Название:* ${groupData.name}\n\n`
+		let message = `🍀 *Название:* ${escapeMarkdown(groupData.name)}\n\n`
 
 		if (groupData.community && groupData.community !== "-") {
-			message += `👥 *Сообщество:* ${groupData.community}\n`
+			message += `👥 *Сообщество:* ${escapeMarkdown(groupData.community)}\n`
 		}
 		if (groupData.time && groupData.time !== "-") {
-			message += `⏰ *Время:* ${groupData.time}\n`
+			message += `⏰ *Время:* ${escapeMarkdown(groupData.time)}\n`
 		}
 		if (groupData.format && groupData.format !== "-") {
-			message += `♨ *Формат:* ${groupData.format}\n`
+			message += `♨ *Формат:* ${escapeMarkdown(groupData.format)}\n`
 		}
 		if (groupData.description && groupData.description !== "-") {
-			message += `\n✨ *Описание:* ${groupData.description}\n\n`
+			message += `\n✨ *Описание:* ${escapeMarkdown(groupData.description)}\n\n`
 		}
 		if (groupData.contact && groupData.contact !== "-") {
-			message += `🛜 *Контакт:* ${groupData.contact}\n`
+			message += `🛜 *Контакт:* ${escapeMarkdown(groupData.contact)}\n`
 		}
 		if (groupData.link && groupData.link !== "-") {
-			message += `🌐 *Ссылка:* ${groupData.link}`
+			message += `🌐 *Ссылка:* ${escapeMarkdown(groupData.link)}`
 		}
 
 		// // Формируем строку с хэштегами
