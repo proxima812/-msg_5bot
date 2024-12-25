@@ -66,7 +66,7 @@ bot.command("start", async ctx => {
 // Обработка команды /add_group
 bot.on("callback_query", async ctx => {
 	const data = ctx.callbackQuery.data
-
+	// Информация о боте и остальное
 	if (data === "show_text") {
 		await ctx.answerCallbackQuery()
 		await ctx.reply(
@@ -74,7 +74,6 @@ bot.on("callback_query", async ctx => {
 			{ parse_mode: "HTML" },
 		)
 	}
-
 	// Добавить группу
 	if (data === "add_group") {
 		await ctx.answerCallbackQuery()
@@ -87,7 +86,6 @@ bot.on("callback_query", async ctx => {
 		ctx.session.step = "search_community" // Устанавливаем шаг для поиска
 		await ctx.reply("🔍 Введите название сообщества для поиска:")
 	}
-
 	// Поиск по времени
 	if (data === "search_time") {
 		await ctx.answerCallbackQuery()
@@ -95,36 +93,33 @@ bot.on("callback_query", async ctx => {
 		await ctx.reply("🔍 Введите время для поиска (формат 00:00):")
 	}
 })
-
+// Из БД выложить сразу все группы в канале, которые есть БД
 bot.command("show_groups", async ctx => {
 	// Проверка на ID администратора
 	if (ctx.from.id !== 5522146122) {
 		await ctx.reply("У вас нет прав для использования этой команды.")
 		return
 	}
-
 	// Получаем все группы из базы данных
 	const { data, error } = await supabase.from("groups").select("*")
-
 	if (error || !data || data.length === 0) {
 		await ctx.reply("В базе данных нет групп.")
 		return
 	}
-
 	// Отправляем информацию о группах в канал
 	for (const group of data) {
 		await bot.api.sendMessage(
 			CHANNEL_ID,
-			`🍀 **Название:** ${group.name}\n♨ **Формат:** ${group.format}\n👥 **Сообщество:** ${group.community}\n✨ **Описание:** ${group.description}\n🌐 **Ссылка:** ${group.link}`,
+			`🍀 *Название:* ${group.name}\n♨ *Формат:* ${group.format}\n👥 *Сообщество:* ${group.community}\n\n✨ *Описание:* ${group.description}\n\n🛜 *Контакт:* ${group.contact}\n🌐 *Ссылка:* ${group.link}`,
+			{ parse_mode: "Markdown" },
 		)
 	}
 
 	// Цикл для отправки сообщения в каждый канал
 	// for (const channelId of CHANNEL_IDS) {
-	// 	await bot.api.sendMessage(channelId, message, { parse_mode: "Markdown" })
+	// 	await bot.api.sendMessage(channelId, `🍀 *Название:* ${channelId.name}\n♨ *Формат:* ${channelId.format}\n👥 *Сообщество:* ${channelId.community}\n\n✨ *Описание:* ${channelId.description}\n\n🛜 *Контакт:* ${channelId.contact}\n🌐 *Ссылка:* ${channelId.link}`, { parse_mode: "Markdown" })
 	// }
-
-	await ctx.reply("Все группы были отправлены в канал..")
+	await ctx.reply("Все группы были отправлены в канал(-ы).")
 })
 
 // Новый код
