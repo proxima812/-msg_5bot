@@ -16,14 +16,19 @@ const supabase = createClient(
 )
 const token = process.env.TOKEN
 if (!token) throw new Error("TOKEN is unset")
+// Интерфейсы для типов
+interface GroupData {
+	name?: string
+	format?: string
+	community?: string
+	description?: string
+	link?: string
+	time?: string
+	contact?: string
+}
+
 interface SessionData {
-	groupData: {
-		name?: string
-		format?: string
-		community?: string
-		description?: string
-		link?: string
-	}
+	groupData: GroupData
 	step?: string
 }
 
@@ -38,7 +43,7 @@ const CHANNEL_ID = "-1002387924511"
 // Устанавливаем плагины
 bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
 bot.use(hydrateReply) // для гидратирования ответов
-bot.api.config.use(parseMode("Markdown")) // для установки режима парсинга по умолчанию
+bot.api.config.use(parseMode("MarkdownV2")) // для установки режима парсинга по умолчанию
 
 // Команда /start для приветствия и начала процесса добавления группы
 bot.command("start", async ctx => {
@@ -111,14 +116,15 @@ bot.command("show_groups", async ctx => {
 		await bot.api.sendMessage(
 			CHANNEL_ID,
 			`🍀 *Название:* ${group.name}\n♨ *Формат:* ${group.format}\n👥 *Сообщество:* ${group.community}\n\n✨ *Описание:* ${group.description}\n\n🛜 *Контакт:* ${group.contact}\n🌐 *Ссылка:* ${group.link}`,
-			{ parse_mode: "Markdown" },
+			{ parse_mode: "MarkdownV2" },
 		)
 	}
 
 	// Цикл для отправки сообщения в каждый канал
 	// for (const channelId of CHANNEL_IDS) {
-	// 	await bot.api.sendMessage(channelId, `🍀 *Название:* ${channelId.name}\n♨ *Формат:* ${channelId.format}\n👥 *Сообщество:* ${channelId.community}\n\n✨ *Описание:* ${channelId.description}\n\n🛜 *Контакт:* ${channelId.contact}\n🌐 *Ссылка:* ${channelId.link}`, { parse_mode: "Markdown" })
-	// }
+	// 	await bot.api.sendMessage(channelId, `🍀 *Название:* ${channelId.name}\n♨ *Формат:* ${channelId.format}\n👥 *Сообщество:* ${channelId.community}\n\n✨ *Описание:* ${channelId.description}\n\n🛜 *Контакт:* ${channelId.contact}\n🌐 *Ссылка:* ${channelId.link}`, { parse_mode: "MarkdownV2" })
+  // }
+  
 	await ctx.reply("Все группы были отправлены в канал(-ы).")
 })
 
@@ -140,7 +146,7 @@ bot.on("message:text", async ctx => {
 				for (const group of data) {
 					await ctx.reply(
 						`🍀 *Название:* ${group.name}\n👥 *Сообщество:* ${group.community}`,
-						{ parse_mode: "Markdown" },
+						{ parse_mode: "MarkdownV2" },
 					)
 				}
 			}
@@ -174,7 +180,7 @@ bot.on("message:text", async ctx => {
 				for (const group of data) {
 					await ctx.reply(
 						`🍀 *Название:* ${group.name}\n👥 *Сообщество:* ${group.community}`,
-						{ parse_mode: "Markdown" },
+						{ parse_mode: "MarkdownV2" },
 					)
 				}
 			}
@@ -205,7 +211,7 @@ bot.on("message:text", async ctx => {
 			} else {
 				for (const group of data) {
 					await ctx.reply(`🍀 *Название:* ${group.name}\n⏰ *Время:* ${group.time}`, {
-						parse_mode: "Markdown",
+						parse_mode: "MarkdownV2",
 					})
 				}
 			}
@@ -297,8 +303,8 @@ bot.on("message:text", async ctx => {
 			return
 		}
 
-		// Функция для экранирования текста для Markdown
-		function escapeMarkdown(text) {
+		// Функция для экранирования текста для MarkdownV2
+		function escapeMarkdownV2(text) {
 			return text
 				.replace(/_/g, "\\_") // Экранируем _
 				.replace(/\*/g, "\\*") // Экранируем *
@@ -318,44 +324,26 @@ bot.on("message:text", async ctx => {
 				.replace(/!/g, "\\!") // Экранируем !
 		}
 		// Формируем сообщение для отправки в канал с проверкой на "-"
-		let message = `🍀 *Название:* ${escapeMarkdown(groupData.name)}\n\n`
+		let message = `🍀 *Название:* ${escapeMarkdownV2(groupData.name)}\n\n`
 
 		if (groupData.community && groupData.community !== "-") {
-			message += `👥 *Сообщество:* ${escapeMarkdown(groupData.community)}\n`
+			message += `👥 *Сообщество:* ${escapeMarkdownV2(groupData.community)}\n`
 		}
 		if (groupData.time && groupData.time !== "-") {
-			message += `⏰ *Время:* ${escapeMarkdown(groupData.time)}\n`
+			message += `⏰ *Время:* ${escapeMarkdownV2(groupData.time)}\n`
 		}
 		if (groupData.format && groupData.format !== "-") {
-			message += `♨ *Формат:* ${escapeMarkdown(groupData.format)}\n`
+			message += `♨ *Формат:* ${escapeMarkdownV2(groupData.format)}\n`
 		}
 		if (groupData.description && groupData.description !== "-") {
-			message += `\n✨ *Описание:* ${escapeMarkdown(groupData.description)}\n\n`
+			message += `\n✨ *Описание:* ${escapeMarkdownV2(groupData.description)}\n\n`
 		}
 		if (groupData.contact && groupData.contact !== "-") {
-			message += `🛜 *Контакт:* ${escapeMarkdown(groupData.contact)}\n`
+			message += `🛜 *Контакт:* ${escapeMarkdownV2(groupData.contact)}\n`
 		}
 		if (groupData.link && groupData.link !== "-") {
-			message += `🌐 *Ссылка:* ${escapeMarkdown(groupData.link)}`
+			message += `🌐 *Ссылка:* ${escapeMarkdownV2(groupData.link)}`
 		}
-
-		// // Формируем строку с хэштегами
-		// let hashtags = "\n\n"
-		// if (groupData.format && groupData.format !== "-") {
-		// 	hashtags += `#${groupData.format}, `
-		// }
-		// if (groupData.community && groupData.community !== "-") {
-		// 	hashtags += `#${groupData.community}, `
-		// }
-		// if (groupData.time && groupData.time !== "-") {
-		// 	hashtags += `#${groupData.time.replace(":", "_")}, `
-		// }
-
-		// // Убираем лишнюю запятую и пробел в конце строки с хэштегами
-		// hashtags = hashtags.trim().replace(/,$/, "")
-
-		// // Добавляем хэштеги к сообщению
-		// message += hashtags
 
 		try {
 			// Сохранение данных в Supabase
@@ -379,11 +367,11 @@ bot.on("message:text", async ctx => {
 			}
 
 			// Отправляем сообщение в канал
-			await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "Markdown" })
+			await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "MarkdownV2" })
 
 			// Успешное добавление
 			await ctx.reply("*Группа успешно добавлена* 🎉\nВернуться в меню /start", {
-				parse_mode: "Markdown",
+				parse_mode: "MarkdownV2",
 				reply_markup: new InlineKeyboard().url(
 					"👀 Посмотреть",
 					"https://t.me/trust_unity",
