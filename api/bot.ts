@@ -10,7 +10,10 @@ import {
 	webhookCallback,
 } from "grammy"
 
-const supabase = createClient(process.env.SP_HOST, process.env.SP_API_SECRET)
+const supabase = createClient(
+	"https://fkwivycaacgpuwfvozlp.supabase.co",
+	process.env.SP_API_SECRET,
+)
 const token = process.env.TOKEN
 if (!token) throw new Error("TOKEN is unset")
 // Интерфейсы для типов
@@ -387,8 +390,7 @@ bot.command("show_groups", async ctx => {
 
 // Вынести функцию экранирования Markdown
 function escapeMarkdown(text: string): string {
-	return text
-		.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&") // Экранирование специальных символов
+	return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&") // Экранирование специальных символов
 }
 
 // Вынести шаги в маппинг
@@ -404,7 +406,8 @@ const steps = {
 	time: {
 		message: "⏰ Введите время (в формате 00:00):",
 		validate: (text: string) =>
-			/^([0-1]?[0-9]|2[0-3]):([0-5]?[0-9])$/.test(text) || "❌ Введите время в формате 00:00.",
+			/^([0-1]?[0-9]|2[0-3]):([0-5]?[0-9])$/.test(text) ||
+			"❌ Введите время в формате 00:00.",
 		next: "format",
 	},
 	format: {
