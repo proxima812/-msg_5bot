@@ -87,9 +87,9 @@ bot.command("start", async ctx => {
 		reply_markup: new InlineKeyboard()
 			.text("🔥 Добавить группу 🔥", "add_group")
 			.row()
-			.text("🔎 Просмотр групп", "view_groups")
-			.text("🗑 Удалить группу", "delete_group")
-			.row()
+			// .text("🔎 Просмотр групп", "view_groups")
+			// .text("🗑 Удалить группу", "delete_group")
+			// .row()
 			.url("👥 Канал, где будет ваша группа", "https://t.me/trust_unity")
 			.row()
 			.url("🌐 Сайт, где будет ваша группа", "https://ppros.vercel.app/")
@@ -112,39 +112,38 @@ bot.on("callback_query:data", async ctx => {
 		ctx.session.step = "name"
 		await ctx.reply(steps.name.message)
 	}
-	if (data === "view_groups") {
-		await viewGroups(ctx)
-	}
-
-	if (data === "delete_group") {
-		ctx.session.step = "delete"
-		await ctx.reply("Введите ID группы, которую хотите удалить:")
-	}
+	// if (data === "view_groups") {
+	// 	await viewGroups(ctx)
+	// }
+	// if (data === "delete_group") {
+	// 	ctx.session.step = "delete"
+	// 	await ctx.reply("Введите ID группы, которую хотите удалить:")
+	// }
 })
 
 function escapeMarkdown(text: string): string {
 	return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")
 }
 
-async function viewGroups(ctx: MyContext) {
-	try {
-		const { data, error } = await supabase.from("groups").select("*")
-		if (error) throw error
+// async function viewGroups(ctx: MyContext) {
+// 	try {
+// 		const { data, error } = await supabase.from("groups").select("*")
+// 		if (error) throw error
 
-		if (data && data.length > 0) {
-			let message = "📝 Список групп:\n"
-			data.forEach((group: GroupData, index) => {
-				message += `\n*${index + 1}* - ${group.name} (ID: ${group.id})`
-			})
-			await ctx.reply(message, { parse_mode: "Markdown" })
-		} else {
-			await ctx.reply("Группы не найдены.")
-		}
-	} catch (error) {
-		console.error("Ошибка при получении групп:", error)
-		await ctx.reply("Произошла ошибка при получении групп.")
-	}
-}
+// 		if (data && data.length > 0) {
+// 			let message = "📝 Список групп:\n"
+// 			data.forEach((group: GroupData, index) => {
+// 				message += `\n*${index + 1}* - ${group.name} (ID: ${group.id})`
+// 			})
+// 			await ctx.reply(message, { parse_mode: "Markdown" })
+// 		} else {
+// 			await ctx.reply("Группы не найдены.")
+// 		}
+// 	} catch (error) {
+// 		console.error("Ошибка при получении групп:", error)
+// 		await ctx.reply("Произошла ошибка при получении групп.")
+// 	}
+// }
 
 bot.on("message:text", async ctx => {
 	const step = ctx.session.step
@@ -153,26 +152,26 @@ bot.on("message:text", async ctx => {
 
 	const currentStep = steps[step]
 
-	if (step === "delete") {
-		const groupId = ctx.message.text.trim()
+	// if (step === "delete") {
+	// 	const groupId = ctx.message.text.trim()
 
-		try {
-			const { data, error } = await supabase.from("groups").delete().eq("id", groupId)
+	// 	try {
+	// 		const { data, error } = await supabase.from("groups").delete().eq("id", groupId)
 
-			if (error) throw error
+	// 		if (error) throw error
 
-			if (data && data.length > 0) {
-				await ctx.reply(`Группа с ID ${groupId} успешно удалена.`)
-			} else {
-				await ctx.reply("Группа с таким ID не найдена.")
-			}
-		} catch (error) {
-			console.error("Ошибка при удалении группы:", error)
-			await ctx.reply("Произошла ошибка при удалении группы.")
-		}
+	// 		if (data && data.length > 0) {
+	// 			await ctx.reply(`Группа с ID ${groupId} успешно удалена.`)
+	// 		} else {
+	// 			await ctx.reply("Группа с таким ID не найдена.")
+	// 		}
+	// 	} catch (error) {
+	// 		console.error("Ошибка при удалении группы:", error)
+	// 		await ctx.reply("Произошла ошибка при удалении группы.")
+	// 	}
 
-		ctx.session.step = undefined
-	}
+	// 	ctx.session.step = undefined
+	// }
 
 	if (currentStep.validate) {
 		const validationResult = currentStep.validate(ctx.message.text.trim())
