@@ -85,40 +85,6 @@ bot.on("callback_query", async ctx => {
 		await ctx.reply("🍀 Введите название группы:")
 		ctx.session.step = "name" // Переход к следующему шагу
 	}
-	// Поиск по сообществу
-	if (data === "search_community") {
-		await ctx.answerCallbackQuery()
-		ctx.session.step = "search_community" // Устанавливаем шаг для поиска
-		await ctx.reply("🔍 Введите название сообщества для поиска:")
-	}
-	// Поиск по формату
-	if (data === "search_format") {
-		await ctx.answerCallbackQuery()
-		ctx.session.step = "search_format" // Устанавливаем шаг для поиска
-
-		// Получение данных из таблицы groups format
-		const { data: formats, error } = await supabase
-			.from("groups") // Название таблицы
-			.select("format") // Поле с форматами
-
-		if (error) {
-			console.error("Ошибка получения форматов:", error)
-			await ctx.reply("❌ Ошибка получения форматов. Попробуйте позже.")
-		} else {
-			// Убираем дубли и объединяем форматы в строку через запятую
-			const uniqueFormats = [...new Set(formats.map(f => f.format))]
-			const formatsList = uniqueFormats.join(", ")
-			await ctx.reply(
-				`👉 Доступные форматы для поиска:\n\n${formatsList}\n\n♨ Введите название формата для поиска:`,
-			)
-		}
-	}
-	// Поиск по времени
-	if (data === "search_time") {
-		await ctx.answerCallbackQuery()
-		ctx.session.step = "search_time" // Устанавливаем шаг для поиска
-		await ctx.reply("🔍 Введите время для поиска (формат 00:00):")
-	}
 })
 // Из БД выложить сразу все группы в канале, которые есть БД
 // bot.command("show_groups", async ctx => {

@@ -7,7 +7,7 @@ const supabase = (0, supabase_js_1.createClient)(
 	"https://fkwivycaacgpuwfvozlp.supabase.co",
 	"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrd2l2eWNhYWNncHV3ZnZvemxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5MDc4MTEsImV4cCI6MjA0OTQ4MzgxMX0.44dYay0RWos4tqwuj6H-ylqN4TrAIabeQLNzBn6Xuy0",
 )
-const token = "7930164051:AAHF4GdP_jpjOiBl6ZCA1gY8HJZ-VH3A520"
+const token = "6466826269:AAFQTbGr3xPJ2ik9u0X2Yat3Vi6Urcr0aPw"
 if (!token) throw new Error("TOKEN is unset")
 const bot = new grammy_1.Bot(token)
 const CHANNEL_ID = "-1002387924511"
@@ -489,7 +489,7 @@ const steps = {
 	},
 	link: {
 		message:
-			"🌐 Введите ссылку на группу (начиная с https://):\n\n❌ _(Если нет информации, пишите -)_",
+			"👉 Если Telegram, то пишите @Название\n👉 Если другие ссылки, то начинайте с https://\n\n❌ _(Если нет информации, пишите -)_",
 		next: "contact",
 	},
 	contact: {
