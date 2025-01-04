@@ -1,6 +1,6 @@
-require("dotenv").config()
 import { hydrateReply, parseMode, type ParseModeFlavor } from "@grammyjs/parse-mode"
 import { createClient } from "@supabase/supabase-js"
+
 import {
 	Bot,
 	Context,
@@ -91,6 +91,28 @@ bot.on("callback_query", async ctx => {
 		ctx.session.step = "search_community" // Устанавливаем шаг для поиска
 		await ctx.reply("🔍 Введите название сообщества для поиска:")
 	}
+	// Поиск по формату
+	if (data === "search_format") {
+		await ctx.answerCallbackQuery()
+		ctx.session.step = "search_format" // Устанавливаем шаг для поиска
+
+		// Получение данных из таблицы groups format
+		const { data: formats, error } = await supabase
+			.from("groups") // Название таблицы
+			.select("format") // Поле с форматами
+
+		if (error) {
+			console.error("Ошибка получения форматов:", error)
+			await ctx.reply("❌ Ошибка получения форматов. Попробуйте позже.")
+		} else {
+			// Убираем дубли и объединяем форматы в строку через запятую
+			const uniqueFormats = [...new Set(formats.map(f => f.format))]
+			const formatsList = uniqueFormats.join(", ")
+			await ctx.reply(
+				`👉 Доступные форматы для поиска:\n\n${formatsList}\n\n♨ Введите название формата для поиска:`,
+			)
+		}
+	}
 	// Поиск по времени
 	if (data === "search_time") {
 		await ctx.answerCallbackQuery()
@@ -128,265 +150,109 @@ bot.command("show_groups", async ctx => {
 	await ctx.reply("Все группы были отправлены в канал(-ы).")
 })
 
-// старый код
-// bot.on("message:text", async ctx => {
-// 	const step = ctx.session.step
-// 	// Поиск по сообществу
-// 	if (step === "search_community") {
-// 		const community = ctx.message.text.trim()
+// Поиск сообществ
+bot.on("message:text", async ctx => {
+	const step = ctx.session.step
+	// Поиск по сообществу
+	if (step === "search_community") {
+		const community = ctx.message.text.trim()
 
-// 		try {
-// 			const { data, error } = await supabase
-// 				.from("groups")
-// 				.select("*")
-// 				.ilike("community", `%${community}%`)
-// 			if (error || !data.length) {
-// 				await ctx.reply("🔍 Сообщество не найдено.")
-// 			} else {
-// 				for (const group of data) {
-// 					await ctx.reply(
-// 						`🍀 *Название:* ${group.name}\n👥 *Сообщество:* ${group.community}`,
-// 						{ parse_mode: "Markdown" },
-// 					)
-// 				}
-// 			}
-// 		} catch (error) {
-// 			console.error("Ошибка при поиске сообщества:", error)
-// 			await ctx.reply("Произошла ошибка при поиске. Попробуйте позже.")
-// 		}
+		try {
+			const { data, error } = await supabase
+				.from("groups")
+				.select("*")
+				.ilike("community", `%${community}%`)
+			if (error || !data.length) {
+				await ctx.reply("🔍 Сообщество не найдено.")
+			} else {
+				for (const group of data) {
+					await ctx.reply(
+						`🍀 *Название:* ${group.name}\n👥 *Сообщество:* ${group.community}`,
+						{ parse_mode: "Markdown" },
+					)
+				}
+			}
+		} catch (error) {
+			console.error("Ошибка при поиске сообщества:", error)
+			await ctx.reply("Произошла ошибка при поиске. Попробуйте позже.")
+		}
 
-// 		// Предложение выполнить еще один поиск
-// 		await ctx.reply("Найти еще группы по времени или же по сообществу?", {
-// 			reply_markup: new InlineKeyboard()
-// 				.text("🔍 Поиск по сообществу", "search_community")
-// 				.row()
-// 				.text("⏰ Поиск по времени", "search_time"),
-// 		})
+		// Предложение выполнить еще один поиск
+		await ctx.reply("Найти еще группы по времени или же по сообществу?", {
+			reply_markup: new InlineKeyboard()
+				.text("🔍 Поиск по сообществу", "search_community")
+				.row()
+				.text("⏰ Поиск по времени", "search_time"),
+		})
 
-// 		ctx.session.step = undefined // Сбрасываем шаг
-// 	}
-// 	// Поиск по формату
-// 	if (step === "search_format") {
-// 		const format = ctx.message.text.trim()
+		ctx.session.step = undefined // Сбрасываем шаг
+	}
+	// Поиск по формату
+	if (step === "search_format") {
+		const format = ctx.message.text.trim()
 
-// 		try {
-// 			const { data, error } = await supabase
-// 				.from("groups")
-// 				.select("*")
-// 				.ilike("format", `%${format}%`)
-// 			if (error || !data.length) {
-// 				await ctx.reply("🔍 Сообщество не найдено.")
-// 			} else {
-// 				for (const group of data) {
-// 					await ctx.reply(
-// 						`🍀 *Название:* ${group.name}\n👥 *Сообщество:* ${group.community}`,
-// 						{ parse_mode: "Markdown" },
-// 					)
-// 				}
-// 			}
-// 		} catch (error) {
-// 			console.error("Ошибка при поиске сообщества:", error)
-// 			await ctx.reply("Произошла ошибка при поиске. Попробуйте позже.")
-// 		}
+		try {
+			const { data, error } = await supabase
+				.from("groups")
+				.select("*")
+				.ilike("format", `%${format}%`)
+			if (error || !data.length) {
+				await ctx.reply("🔍 Сообщество не найдено.")
+			} else {
+				for (const group of data) {
+					await ctx.reply(
+						`🍀 *Название:* ${group.name}\n👥 *Сообщество:* ${group.community}`,
+						{ parse_mode: "Markdown" },
+					)
+				}
+			}
+		} catch (error) {
+			console.error("Ошибка при поиске сообщества:", error)
+			await ctx.reply("Произошла ошибка при поиске. Попробуйте позже.")
+		}
 
-// 		// Предложение выполнить еще один поиск
-// 		await ctx.reply("Найти еще группы по времени, по сообществу или же по формату?", {
-// 			reply_markup: new InlineKeyboard()
-// 				.text("🔍 Поиск по сообществу", "search_community")
-// 				.text("⏰ Поиск по времени", "search_time")
-// 				.row()
-// 				.text("♨ Поиск по формату", "search_format"),
-// 		})
+		// Предложение выполнить еще один поиск
+		await ctx.reply("Найти еще группы по времени, по сообществу или же по формату?", {
+			reply_markup: new InlineKeyboard()
+				.text("🔍 Поиск по сообществу", "search_community")
+				.text("⏰ Поиск по времени", "search_time")
+				.row()
+				.text("♨ Поиск по формату", "search_format"),
+		})
 
-// 		ctx.session.step = undefined // Сбрасываем шаг
-// 	}
-// 	// Поиск по времени
-// 	else if (step === "search_time") {
-// 		const time = ctx.message.text.trim()
+		ctx.session.step = undefined // Сбрасываем шаг
+	}
+	// Поиск по времени
+	else if (step === "search_time") {
+		const time = ctx.message.text.trim()
 
-// 		try {
-// 			const { data, error } = await supabase.from("groups").select("*").eq("time", time)
-// 			if (error || !data.length) {
-// 				await ctx.reply("🔍 Группы с таким временем не найдены.")
-// 			} else {
-// 				for (const group of data) {
-// 					await ctx.reply(`🍀 *Название:* ${group.name}\n⏰ *Время:* ${group.time}`, {
-// 						parse_mode: "Markdown",
-// 					})
-// 				}
-// 			}
-// 		} catch (error) {
-// 			console.error("Ошибка при поиске по времени:", error)
-// 			await ctx.reply("Произошла ошибка при поиске. Попробуйте позже.")
-// 		}
+		try {
+			const { data, error } = await supabase.from("groups").select("*").eq("time", time)
+			if (error || !data.length) {
+				await ctx.reply("🔍 Группы с таким временем не найдены.")
+			} else {
+				for (const group of data) {
+					await ctx.reply(`🍀 *Название:* ${group.name}\n⏰ *Время:* ${group.time}`, {
+						parse_mode: "Markdown",
+					})
+				}
+			}
+		} catch (error) {
+			console.error("Ошибка при поиске по времени:", error)
+			await ctx.reply("Произошла ошибка при поиске. Попробуйте позже.")
+		}
 
-// 		// Предложение выполнить еще один поиск
-// 		await ctx.reply("Найти еще группы по времени или же по сообществу?", {
-// 			reply_markup: new InlineKeyboard()
-// 				.text("🔍 Поиск по сообществу", "search_community")
-// 				.row()
-// 				.text("⏰ Поиск по времени", "search_time"),
-// 		})
+		// Предложение выполнить еще один поиск
+		await ctx.reply("Найти еще группы по времени или же по сообществу?", {
+			reply_markup: new InlineKeyboard()
+				.text("🔍 Поиск по сообществу", "search_community")
+				.row()
+				.text("⏰ Поиск по времени", "search_time"),
+		})
 
-// 		ctx.session.step = undefined // Сбрасываем шаг
-// 	}
-// 	// Пошаговая логика заполнения данных
-// 	else if (step === "name") {
-// 		ctx.session.groupData.name = ctx.message.text.trim()
-// 		ctx.session.step = "community"
-// 		await ctx.reply("👥 Сообщество (Аббревиатура):")
-// 	} else if (step === "community") {
-// 		const community = ctx.message.text.trim()
-// 		// Если введено "-", пропускаем этот шаг
-// 		if (community !== "-") {
-// 			ctx.session.groupData.community = community
-// 		}
-// 		ctx.session.step = "time"
-// 		await ctx.reply("⏰ Введите время (в формате 00:00):")
-// 	} else if (step === "time") {
-// 		const time = ctx.message.text.trim()
-
-// 		// Проверка на корректность формата времени (например, 00:00)
-// 		const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5]?[0-9])$/
-// 		if (!timeRegex.test(time)) {
-// 			await ctx.reply("❌ Ошибка! Введите время в формате 00:00.")
-// 			return
-// 		}
-
-// 		ctx.session.groupData.time = time
-// 		ctx.session.step = "format"
-// 		await ctx.reply("♨ Введите формат группы:\n\n❌ _(Если нет информации, пишите -)_")
-// 	} else if (step === "format") {
-// 		const format = ctx.message.text.trim()
-// 		// Если введено "-", пропускаем этот шаг
-// 		if (format !== "-") {
-// 			ctx.session.groupData.format = format
-// 		}
-// 		ctx.session.step = "description"
-// 		await ctx.reply("✨ Введите описание группы:\n\n❌ _(Если нет информации, пишите -)_")
-// 	} else if (step === "description") {
-// 		const description = ctx.message.text.trim()
-// 		// Если введено "-", пропускаем этот шаг
-// 		if (description !== "-") {
-// 			ctx.session.groupData.description = description
-// 		}
-// 		ctx.session.step = "link"
-// 		await ctx.reply(
-// 			"Ссылка на группу:\n👉 Если *Telegram*, то пишите *@Название*\n👉 Если другие ссылки, то начинайте с *https://*\n\n❌ _(Если нет информации, пишите -)_",
-// 		)
-// 	} else if (step === "link") {
-// 		const link = ctx.message.text.trim()
-// 		// Если введено "-", пропускаем этот шаг
-// 		if (link !== "-") {
-// 			ctx.session.groupData.link = link
-// 		}
-// 		ctx.session.step = "contact"
-// 		await ctx.reply("🛜 Введите контакт *(ПГ / ПГО / Любой другой контакт для связи):*")
-// 	} else if (step === "contact") {
-// 		const contact = ctx.message.text.trim()
-// 		// Если введено "-", пропускаем этот шаг
-// 		if (contact !== "-") {
-// 			ctx.session.groupData.contact = contact
-// 		}
-
-// 		const groupData = ctx.session.groupData
-
-// 		// Проверяем, что все необходимые данные заполнены
-// 		if (!groupData.name) {
-// 			await ctx.reply("Ошибка: название группы не указано.")
-// 			return
-// 		}
-
-// 		// Если какое-то обязательное поле не заполнено, завершаем процесс с ошибкой
-// 		if (!groupData.name || !groupData.community || !groupData.contact) {
-// 			await ctx.reply("Ошибка: не все обязательные поля заполнены.")
-// 			return
-// 		}
-
-// 		// Функция для экранирования текста для Markdown
-// 		function escapeMarkdown(text) {
-// 			return text
-// 				.replace(/_/g, "\\_") // Экранируем _
-// 				.replace(/\*/g, "\\*") // Экранируем *
-// 				.replace(/\[/g, "\\[") // Экранируем [
-// 				.replace(/]/g, "\\]") // Экранируем ]
-// 				.replace(/\(/g, "\\(") // Экранируем (
-// 				.replace(/\)/g, "\\)") // Экранируем )
-// 				.replace(/~/g, "\\~") // Экранируем ~
-// 				.replace(/`/g, "\\`") // Экранируем `
-// 				.replace(/>/g, "\\>") // Экранируем >
-// 				.replace(/#/g, "\\#") // Экранируем #
-// 				.replace(/\+/g, "\\+") // Экранируем +
-// 				.replace(/-/g, "\\-") // Экранируем -
-// 				.replace(/=/g, "\\=") // Экранируем =
-// 				.replace(/\|/g, "\\|") // Экранируем |
-// 				.replace(/\./g, ".") // Не экранируем точку
-// 				.replace(/!/g, "\\!") // Экранируем !
-// 		}
-// 		// Формируем сообщение для отправки в канал с проверкой на "-"
-// 		let message = `🍀 *Название:* ${escapeMarkdown(groupData.name)}\n\n`
-
-// 		if (groupData.community && groupData.community !== "-") {
-// 			message += `👥 *Сообщество:* ${escapeMarkdown(groupData.community)}\n`
-// 		}
-// 		if (groupData.time && groupData.time !== "-") {
-// 			message += `⏰ *Время:* ${escapeMarkdown(groupData.time)}\n`
-// 		}
-// 		if (groupData.format && groupData.format !== "-") {
-// 			message += `♨ *Формат:* ${escapeMarkdown(groupData.format)}\n`
-// 		}
-// 		if (groupData.description && groupData.description !== "-") {
-// 			message += `\n✨ *Описание:* ${escapeMarkdown(groupData.description)}\n\n`
-// 		}
-// 		if (groupData.contact && groupData.contact !== "-") {
-// 			message += `🛜 *Контакт:* ${escapeMarkdown(groupData.contact)}\n`
-// 		}
-// 		if (groupData.link && groupData.link !== "-") {
-// 			message += `🌐 *Ссылка:* ${escapeMarkdown(groupData.link)}`
-// 		}
-
-// 		try {
-// 			// Сохранение данных в Supabase
-// 			const { data, error } = await supabase.from("groups").insert([
-// 				{
-// 					name: groupData.name,
-// 					format: groupData.format,
-// 					community: groupData.community,
-// 					description: groupData.description,
-// 					contact: groupData.contact,
-// 					link: groupData.link,
-// 					time: groupData.time, // Добавили время
-// 					created_at: new Date().toISOString(),
-// 				},
-// 			])
-
-// 			if (error) {
-// 				console.error("Ошибка добавления группы в БД:", error)
-// 				await ctx.reply("Произошла ошибка при добавлении группы.")
-// 				return
-// 			}
-
-// 			// Отправляем сообщение в канал
-// 			await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "Markdown" })
-
-// 			// Успешное добавление
-// 			await ctx.reply("*Группа успешно добавлена* 🎉\nВернуться в меню /start", {
-// 				parse_mode: "Markdown",
-// 				reply_markup: new InlineKeyboard().url(
-// 					"👀 Посмотреть",
-// 					"https://t.me/trust_unity",
-// 				),
-// 			})
-
-// 			// Очистка данных сессии
-// 			ctx.session.groupData = {}
-// 			ctx.session.step = undefined
-// 		} catch (err) {
-// 			console.error("Ошибка при добавлении группы:", err)
-// 			await ctx.reply("Произошла ошибка. Пожалуйста, попробуйте позже.")
-// 		}
-// 	}
-// })
+		ctx.session.step = undefined // Сбрасываем шаг
+	}
+})
 
 // Вынести функцию экранирования Markdown
 function escapeMarkdown(text: string): string {
@@ -487,4 +353,4 @@ bot.on("message:text", async ctx => {
 	}
 })
 
-export default webhookCallback(bot, "http")
+export default webhookCallback(bot, "https")
