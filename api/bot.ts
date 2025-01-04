@@ -1,4 +1,6 @@
+import { autoRetry } from "@grammyjs/auto-retry"
 import { hydrateReply, parseMode, type ParseModeFlavor } from "@grammyjs/parse-mode"
+import { limit } from "@grammyjs/ratelimiter"
 import { createClient } from "@supabase/supabase-js"
 
 import {
@@ -38,8 +40,32 @@ const bot = new Bot<MyContext>(token)
 const CHANNEL_ID = "-1002387924511"
 
 bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
-bot.use(hydrateReply) // для гидратирования ответов
-bot.api.config.use(parseMode("Markdown")) // для установки режима парсинга по умолчанию
+bot.use(
+	hydrateReply,
+	limit({
+		// Разрешите обрабатывать только 3 сообщения каждые 2 секунды.
+		timeFrame: 10000,
+		limit: 6,
+		// Эта функция вызывается при превышении лимита.
+		onLimitExceeded: async ctx => {
+			await ctx.reply(
+				"Пожалуйста, воздержитесь от отправки слишком большого количества запросов!",
+			)
+		},
+		keyGenerator: ctx => {
+			return ctx.from?.id.toString()
+		},
+	}),
+) // для гидратирования ответов
+bot.api.config.use(
+	parseMode("Markdown"),
+	autoRetry({
+		maxRetryAttempts: 2,
+		maxDelaySeconds: 10,
+		rethrowInternalServerErrors: true,
+		rethrowHttpErrors: true,
+	}),
+) // для установки режима парсинга по умолчанию
 
 const resetSession = (ctx: MyContext) => {
 	ctx.session.groupData = {}
