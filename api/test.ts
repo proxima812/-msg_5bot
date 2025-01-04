@@ -1,23 +1,23 @@
 import { hydrateReply, parseMode, type ParseModeFlavor } from "@grammyjs/parse-mode"
 import { createClient } from "@supabase/supabase-js"
-
 import {
 	Bot,
 	Context,
 	InlineKeyboard,
 	session,
 	SessionFlavor,
-	webhookCallback,
 } from "grammy"
 
 const supabase = createClient(
 	"https://fkwivycaacgpuwfvozlp.supabase.co",
-	process.env.SP_API_SECRET,
+	"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrd2l2eWNhYWNncHV3ZnZvemxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5MDc4MTEsImV4cCI6MjA0OTQ4MzgxMX0.44dYay0RWos4tqwuj6H-ylqN4TrAIabeQLNzBn6Xuy0",
 )
-const token = process.env.TOKEN
+
+const token = "6466826269:AAFQTbGr3xPJ2ik9u0X2Yat3Vi6Urcr0aPw"
 if (!token) throw new Error("TOKEN is unset")
 
 interface GroupData {
+	id?: number
 	name?: string
 	format?: string
 	community?: string
@@ -35,12 +35,14 @@ interface SessionData {
 type MyContext = Context & SessionFlavor<SessionData> & ParseModeFlavor
 
 const bot = new Bot<MyContext>(token)
-const CHANNEL_ID = "-1002387924511"
+const CHANNEL_ID = "-1002167754817"
 
-bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
-bot.use(hydrateReply) // для гидратирования ответов
-bot.api.config.use(parseMode("Markdown")) // для установки режима парсинга по умолчанию
+// Используем сессии и настройку парсинга Markdown
+bot.use(session({ initial: (): SessionData => ({ groupData: {} }) }))
+bot.use(hydrateReply)
+bot.api.config.use(parseMode("Markdown"))
 
+// Сброс данных сессии
 const resetSession = (ctx: MyContext) => {
 	ctx.session.groupData = {}
 	ctx.session.step = undefined
@@ -81,6 +83,7 @@ const steps = {
 	},
 }
 
+// Команды для начала
 bot.command("start", async ctx => {
 	resetSession(ctx)
 	await ctx.reply("Добро пожаловать! Выберите действие:", {
@@ -88,6 +91,7 @@ bot.command("start", async ctx => {
 			.text("🔥 Добавить группу 🔥", "add_group")
 			.row()
 			.text("🔎 Просмотр групп", "view_groups")
+			.row()
 			.text("🗑 Удалить группу", "delete_group")
 			.row()
 			.url("👥 Канал, где будет ваша группа", "https://t.me/trust_unity")
@@ -98,6 +102,7 @@ bot.command("start", async ctx => {
 	})
 })
 
+// Обработчик нажатий на инлайн-кнопки
 bot.on("callback_query:data", async ctx => {
 	const data = ctx.callbackQuery.data
 	if (data === "show_text") {
@@ -107,11 +112,13 @@ bot.on("callback_query:data", async ctx => {
 			{ parse_mode: "HTML" },
 		)
 	}
+
 	if (data === "add_group") {
 		resetSession(ctx)
 		ctx.session.step = "name"
 		await ctx.reply(steps.name.message)
 	}
+
 	if (data === "view_groups") {
 		await viewGroups(ctx)
 	}
@@ -121,11 +128,10 @@ bot.on("callback_query:data", async ctx => {
 		await ctx.reply("Введите ID группы, которую хотите удалить:")
 	}
 })
-
 function escapeMarkdown(text: string): string {
 	return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")
 }
-
+// Функция для просмотра всех групп
 async function viewGroups(ctx: MyContext) {
 	try {
 		const { data, error } = await supabase.from("groups").select("*")
@@ -146,12 +152,9 @@ async function viewGroups(ctx: MyContext) {
 	}
 }
 
+// Функция для удаления группы
 bot.on("message:text", async ctx => {
 	const step = ctx.session.step
-
-	if (!step || !(step in steps)) return
-
-	const currentStep = steps[step]
 
 	if (step === "delete") {
 		const groupId = ctx.message.text.trim()
@@ -174,6 +177,10 @@ bot.on("message:text", async ctx => {
 		ctx.session.step = undefined
 	}
 
+	// Прочие шаги добавления группы
+	const currentStep = steps[step]
+	if (!step || !(step in steps)) return
+
 	if (currentStep.validate) {
 		const validationResult = currentStep.validate(ctx.message.text.trim())
 		if (validationResult !== true) {
@@ -190,7 +197,6 @@ bot.on("message:text", async ctx => {
 	} else {
 		const { name, community, time, format, description, link, contact } =
 			ctx.session.groupData
-
 		const message =
 			`🍀 *Название:* ${escapeMarkdown(name)}\n` +
 			(community ? `👥 *Сообщество:* ${escapeMarkdown(community)}\n` : "") +
@@ -201,9 +207,11 @@ bot.on("message:text", async ctx => {
 			(link ? `🌐 *Ссылка:* ${escapeMarkdown(link)}` : "")
 
 		try {
-			await supabase
+			const { error } = await supabase
 				.from("groups")
 				.insert([{ name, community, time, format, description, link, contact }])
+
+			if (error) throw error
 
 			await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "Markdown" })
 
@@ -220,4 +228,4 @@ bot.on("message:text", async ctx => {
 	}
 })
 
-export default webhookCallback(bot, "https")
+bot.start()
