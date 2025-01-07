@@ -124,22 +124,28 @@ bot.command("start", async ctx => {
 			.text("🔸 Вся информация о боте 🔸", "show_text"),
 	})
 })
-// Вывод групп текущего пользователя:
+
+// Вывод групп текущего пользователя с клавиатурой:
 bot.command("my_groups", async ctx => {
 	const userId = ctx.from?.id
 	try {
-		const { data, error } = await supabase.from("groups").select("*").eq("userId", userId)
+		const { data, error } = await supabase
+			.from("groups")
+			.select("id, name, messageId")
+			.eq("userId", userId)
 
 		if (error) throw error
 
 		if (data && data.length > 0) {
-			let message = "📝 Ваши группы:\n"
-			data.forEach((group: GroupData, index) => {
-				message += `\n*${index + 1}* - ${escapeMarkdown(group.name || "")} (ID: ${
-					group.id
-				})`
+			const keyboard = new InlineKeyboard()
+
+			data.forEach(group => {
+				keyboard.text(`🗑 Удалить - ${group.name}`, `delete_group_${group.id}`).row()
 			})
-			await ctx.reply(message, { parse_mode: "Markdown" })
+
+			await ctx.reply("📝 Ваши группы:", {
+				reply_markup: keyboard,
+			})
 		} else {
 			await ctx.reply("У вас ещё нет добавленных групп.")
 		}
@@ -199,13 +205,46 @@ bot.on("callback_query:data", async ctx => {
 		ctx.session.step = "name"
 		await ctx.reply(steps.name.message)
 	}
-	// if (data === "view_groups") {
-	// 	await viewGroups(ctx)
-	// }
-	// if (data === "delete_group") {
-	// 	ctx.session.step = "delete"
-	// 	await ctx.reply("Введите ID группы, которую хотите удалить:")
-	// }
+	if (data.startsWith("delete_group_")) {
+		const groupId = data.replace("delete_group_", "")
+
+		try {
+			// Получаем информацию о группе из БД
+			const { data: groupData, error: fetchError } = await supabase
+				.from("groups")
+				.select("messageId")
+				.eq("id", groupId)
+				.single()
+
+			if (fetchError || !groupData) {
+				await ctx.reply("Ошибка: группа не найдена.")
+				return
+			}
+
+			// Удаляем сообщение из канала
+			const { messageId } = groupData
+			if (messageId) {
+				try {
+					await bot.api.deleteMessage(CHANNEL_ID, messageId)
+				} catch (deleteError) {
+					console.error("Ошибка при удалении сообщения из канала:", deleteError)
+				}
+			}
+
+			// Удаляем группу из базы данных
+			const { error: deleteError } = await supabase
+				.from("groups")
+				.delete()
+				.eq("id", groupId)
+
+			if (deleteError) throw deleteError
+
+			await ctx.reply(`Группа успешно удалена.`)
+		} catch (error) {
+			console.error("Ошибка при удалении группы:", error)
+			await ctx.reply("Произошла ошибка при удалении группы.")
+		}
+	}
 })
 
 function escapeMarkdown(text: string): string {
