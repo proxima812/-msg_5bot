@@ -38,7 +38,8 @@ interface SessionData {
 type MyContext = Context & SessionFlavor<SessionData> & ParseModeFlavor
 
 const bot = new Bot<MyContext>(token)
-const CHANNEL_IDS = ["-1002387924511", "-1002167754817", "-1002442910746"]
+const CHANNEL_IDS = ["-1002387924511"]
+// const CHANNEL_IDS = ["-1002387924511", "-1002167754817", "-1002442910746"]
 
 bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
 bot.use(
@@ -191,32 +192,29 @@ bot.on("callback_query:data", async ctx => {
 				return
 			}
 
+			// Получаем массив messageIds
 			const { messageId } = groupData
 
-			// Удаляем сообщение из канала, если оно существует
-			// if (messageId) {
-			// 	try {
-			// 		await bot.api.deleteMessage(CHANNEL_IDS, messageId)
-			// 	} catch (deleteError) {
-			// 		console.error("Ошибка при удалении сообщения из канала:", deleteError)
-			// 		await ctx.reply(
-			// 			"Не удалось удалить сообщение из канала, но группа будет удалена.",
-			// 		)
-			// 	}
-			// }
-
-			if (messageId) {
-				for (const channelId of CHANNEL_IDS) {
-					try {
-						// Удаляем сообщение из каждого канала
-						await bot.api.deleteMessage(channelId, messageId)
-					} catch (deleteError) {
-						console.error("Ошибка при удалении сообщения из канала:", deleteError)
-						await ctx.reply(
-							"Не удалось удалить сообщение из канала, но группа будет удалена.",
-						)
+			if (messageId && Array.isArray(messageId)) {
+				// Перебираем все messageId в массиве
+				for (const message of messageId) {
+					for (const channelId of CHANNEL_IDS) {
+						try {
+							// Попробуйте удалить сообщение из каждого канала
+							await bot.api.deleteMessage(channelId, message)
+							console.log(`Сообщение с id ${message} удалено из канала ${channelId}`)
+						} catch (deleteError) {
+							console.error(
+								`Ошибка при удалении сообщения ${message} из канала ${channelId}:`,
+								deleteError,
+							)
+							// В случае ошибки можно обработать иначе, например, пропустить этот канал
+						}
 					}
 				}
+			} else {
+				await ctx.reply("Сообщения для удаления не найдены.")
+				return
 			}
 
 			// Удаляем группу из базы данных
