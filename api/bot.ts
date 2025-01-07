@@ -120,79 +120,21 @@ bot.command("start", async ctx => {
 			.row()
 			.url("🌐 Сайт, где будет ваша группа", "https://ppros.vercel.app/")
 			.row()
-			.text("🔸 Вся информация о боте 🔸", "show_text"),
+			.text("🔸 Вся информация о боте 🔸", "show_text")
+			.text("📢 Добавить меня как рассылку", "add_broadcast_chat"),
 	})
 })
 
-// Функция для создания клавиатуры с сообществами из БД
-async function createCommunityKeyboard() {
-	const { data, error } = await supabase
-		.from("groups")
-		.select("community")
-		.distinct()
-
-	if (error) {
-		console.error("Ошибка при получении сообществ:", error)
-		return new InlineKeyboard().text("Ошибка", "error")
-	}
-
-	// Создаем кнопки для каждого сообщества
-	const keyboard = new InlineKeyboard()
-	data.forEach((group, index) => {
-		if (group.community) {
-			keyboard.text(group.community, `community_${group.community}`)
-		}
-		if ((index + 1) % 2 === 0) {
-			keyboard.row()
-		}
-	})
-
-	// Добавляем пустую строку, если кнопок нечетное количество
-	if (data.length % 2 !== 0) {
-		keyboard.row()
-	}
-
-	return keyboard
-}
-
-// Функция для фильтрации групп по сообществу
-async function filterGroupsByCommunity(ctx, community) {
-	try {
-		const { data, error } = await supabase
-			.from("groups")
-			.select("name, messageId")
-			.eq("community", community)
-
-		if (error) throw error
-
-		if (data && data.length > 0) {
-			const keyboard = new InlineKeyboard()
-
-			data.forEach((group, index) => {
-				keyboard.text(group.name, `send_group_${group.messageId}`)
-				if ((index + 1) % 2 === 0) {
-					keyboard.row()
-				}
-			})
-
-			if (data.length % 2 !== 0) {
-				keyboard.row()
-			}
-
-			await ctx.reply(`Группы из сообщества "${community}":`, {
-				reply_markup: keyboard,
-			})
-		} else {
-			await ctx.reply(`Нет групп в сообществе "${community}".`)
-		}
-	} catch (error) {
-		console.error("Ошибка при фильтрации групп:", error)
-		await ctx.reply("Произошла ошибка при фильтрации групп.")
-	}
-}
-
 bot.on("callback_query:data", async ctx => {
 	const data = ctx.callbackQuery.data
+
+	if (data === "add_broadcast_chat") {
+		await ctx.answerCallbackQuery()
+		await ctx.reply(
+			"Пожалуйста, добавьте меня как администратора в ваш канал с правами редактирования и удаления сообщений. Как только я буду администратором, я смогу работать.",
+		)
+	}
+
 	if (data === "show_text") {
 		await ctx.answerCallbackQuery()
 		await ctx.reply(
@@ -239,7 +181,52 @@ bot.on("callback_query:data", async ctx => {
 			console.error("Ошибка при получении групп:", error)
 			await ctx.reply("Произошла ошибка при получении ваших групп.")
 		}
+  }
+  
+
+	// Обработка выбора сообщества для рассылки
+	if (data.startsWith("filter_groups_")) {
+		const communityFilter = data.replace("filter_groups_", "")
+
+		// Запрос всех групп с выбранным сообществом
+		const { data: groups, error } = await supabase
+			.from("groups")
+			.select("*")
+			.eq("community", communityFilter)
+
+		if (error) {
+			await ctx.reply("Произошла ошибка при фильтрации групп.")
+			return
+		}
+
+		// Отправляем отфильтрованные группы в канал
+		if (groups && groups.length > 0) {
+			const chatId = ctx.session.broadcastChatId || CHANNEL_ID
+			for (const group of groups) {
+				const message = `
+🍀 *Название:* ${escapeMarkdown(group.name)}\n
+👥 *Сообщество:* ${escapeMarkdown(group.community)}\n
+⏰ *Время:* ${escapeMarkdown(group.time)}\n
+♨ *Формат:* ${escapeMarkdown(group.format)}\n
+\n✨ *Описание:* ${escapeMarkdown(group.description)}\n\n
+🛜 *Контакт:* ${escapeMarkdown(group.contact)}\n
+🌐 *Ссылка:* ${escapeMarkdown(group.link)}
+`
+
+				await bot.api.sendMessage(chatId, message, {
+					parse_mode: "Markdown",
+				})
+			}
+			await ctx.reply(
+				`Группы для сообщества "${communityFilter}" были отправлены в канал.`,
+			)
+		} else {
+			await ctx.reply(`Нет групп с сообществом "${communityFilter}".`)
+		}
 	}
+
+
+
 	if (data.startsWith("delete_group_")) {
 		const groupId = data.replace("delete_group_", "")
 
@@ -284,28 +271,49 @@ bot.on("callback_query:data", async ctx => {
 			await ctx.reply("Произошла ошибка при удалении группы.")
 		}
 	}
+})
 
-	// 1. Обработка нажатия на "Добавить чат, как рассылку"
-	if (data === "add_broadcast_chat") {
-		await ctx.answerCallbackQuery()
-		await ctx.reply("Введите ID чата или канала, чтобы добавить его в рассылку.")
-		// Сохраняем состояние, чтобы знать, что ожидаем от пользователя ID канала
-		ctx.session.step = "add_broadcast_chat"
-	}
+bot.on("chat_member", async ctx => {
+	// Проверяем, что бот был добавлен в группу или канал
+	const newStatus = ctx.chatMember.new_chat_member.status
+	const isBotAdded = newStatus === "administrator"
 
-	// 2. Обработка нажатия на "Фильтр выводимых групп"
-	if (data === "filter_groups") {
-		await ctx.answerCallbackQuery()
-		await ctx.reply("Выберите сообщество, по которому хотите фильтровать группы:", {
-			reply_markup: await createCommunityKeyboard(),
-		})
-	}
+	if (isBotAdded && ctx.chatMember.from) {
+		const userId = ctx.chatMember.from.id // ID пользователя, добавившего бота
+		const chatId = ctx.chatMember.chat.id // ID группы или канала
 
-	// 3. Обработка выбора сообщества
-	if (data.startsWith("community_")) {
-		const community = data.replace("community_", "")
-		// Фильтруем группы по выбранному сообществу
-		await filterGroupsByCommunity(ctx, community)
+		// Сохраняем информацию о канале в таблице
+		try {
+			await supabase.from("groupsList").upsert([{ idGroup: chatId }])
+
+			// Сохраняем ID чата как рассылку
+			ctx.session.broadcastChatId = chatId
+
+			// Запрос сообществ
+			const { data: communities, error } = await supabase
+				.from("groups")
+				.select("community")
+				.distinct()
+
+			if (error) {
+				await ctx.reply("Ошибка при получении сообществ.")
+				return
+			}
+
+			const keyboard = new InlineKeyboard()
+			communities.forEach(community => {
+				if (community.community) {
+					keyboard.text(community.community, `filter_groups_${community.community}`)
+				}
+			})
+
+			await ctx.reply("Выберите сообщество для рассылки:", {
+				reply_markup: keyboard,
+			})
+		} catch (error) {
+			console.error("Ошибка при сохранении канала как рассылки:", error)
+			await ctx.reply("Произошла ошибка при добавлении канала.")
+		}
 	}
 })
 
@@ -379,62 +387,6 @@ bot.on("message:text", async ctx => {
 		} catch (error) {
 			console.error("Ошибка при добавлении группы:", error)
 			await ctx.reply("Произошла ошибка. Попробуйте позже.")
-		}
-  }
-  
-  
-  if (ctx.session.step === "add_broadcast_chat") {
-		const chatId = ctx.message.text.trim()
-
-		try {
-			// Сохраняем ID чата в таблицу groupsList
-			const { error } = await supabase.from("groupsList").insert([{ idGroup: chatId }])
-
-			if (error) throw error
-
-			await ctx.reply(`Чат ${chatId} успешно добавлен в рассылку!`)
-		} catch (error) {
-			console.error("Ошибка при добавлении чата в рассылку:", error)
-			await ctx.reply("Произошла ошибка при добавлении чата. Попробуйте позже.")
-		}
-
-		// Сбрасываем состояние после обработки
-		ctx.session.step = undefined
-	}
-})
-
-bot.on("chat_member", async ctx => {
-	// Проверяем, что бот был добавлен в группу или канал
-	const newStatus = ctx.chatMember.new_chat_member.status
-	const isBotAdded = newStatus === "administrator"
-
-	if (isBotAdded && ctx.chatMember.from) {
-		const userId = ctx.chatMember.from.id // ID пользователя, добавившего бота
-		const chatId = ctx.chatMember.chat.id // ID группы или канала
-
-		// Создаем клавиатуру
-		const keyboard = new InlineKeyboard().text("Настроить меня", "setup")
-
-		// Отправляем личное сообщение пользователю с клавиатурой
-		try {
-			await bot.api.sendMessage(
-				userId,
-				`Приветствую, ${ctx.chatMember.from.first_name}! Чтобы я мог работать, дайте мне права администратора: удаление/изменения сообщений.\n\nИнформация о боте @legion_free, также (НК Действия https://t.me/+unxSBy-6XyNTMy)`,
-				{
-					reply_markup: keyboard,
-				},
-			)
-		} catch (error) {
-			console.error("Ошибка при отправке сообщения пользователю:", error)
-		}
-
-		// Сохраняем информацию о группе в БД
-		try {
-			const { error } = await supabase.from("groupsList").insert([{ idGroup: chatId }])
-
-			if (error) throw error
-		} catch (dbError) {
-			console.error("Ошибка при сохранении информации о группе:", dbError)
 		}
 	}
 })
