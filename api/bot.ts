@@ -149,18 +149,21 @@ bot.on("callback_query:data", async ctx => {
 				.select("id, name, messageId")
 				.eq("userId", userId)
 
-			if (error) throw error
-			if (data && data.length > 0) {
-				const keyboard = new InlineKeyboard()
+			if (error) {
+				console.error("Ошибка при получении данных из БД:", error)
+				await ctx.reply("Произошла ошибка при получении ваших групп.")
+				return
+			}
 
+			if (data && data.length > 0) {
+				console.log("Найдено групп в базе:", data)
+				const keyboard = new InlineKeyboard()
 				data.forEach((group, index) => {
 					keyboard.text(`🗑 - ${group.name}`, `delete_group_${group.id}`)
-					// Добавляем новую строку после каждой второй кнопки
 					if ((index + 1) % 2 === 0) {
 						keyboard.row()
 					}
 				})
-				// Если кнопок нечетное количество, добавляем последнюю строку
 				if (data.length % 2 !== 0) {
 					keyboard.row()
 				}
@@ -168,6 +171,7 @@ bot.on("callback_query:data", async ctx => {
 					reply_markup: keyboard,
 				})
 			} else {
+				console.log("Группы не найдены.")
 				await ctx.reply("У вас ещё нет добавленных групп.")
 			}
 		} catch (error) {
@@ -277,45 +281,54 @@ bot.on("message:text", async ctx => {
 			(link ? `🌐 *Ссылка:* ${escapeMarkdown(link)}` : "")
 
 		try {
-			// Отправка сообщения в канал
-			// Либо CHANNEL_ID
-			// const sentMessage = await bot.api.sendMessage(CHANNEL_IDS, message, {
-			// 	parse_mode: "Markdown",
-			// })
+			// Отправка сообщения в канал и получение message_id
 			const messageIds: number[] = []
 			for (const channelId of CHANNEL_IDS) {
 				try {
-					// Отправляем сообщение в каждый канал
+					// Отправка сообщения в каждый канал
 					const sentMessage = await bot.api.sendMessage(channelId, message, {
 						parse_mode: "Markdown",
 					})
 
-					// Добавляем message_id в массив
+					// Добавление message_id в массив
 					messageIds.push(sentMessage.message_id)
 				} catch (sendError) {
 					console.error(`Ошибка при отправке сообщения в канал ${channelId}:`, sendError)
-					// Здесь можно отправить сообщение только в один канал или указать обработку ошибок
 				}
 			}
 
+			console.log("Сообщения отправлены, сохраняем в БД...", messageIds)
+
 			// Сохранение данных в БД
-			await supabase.from("groups").insert([
-				{
-					name,
-					community,
-					time,
-					format,
-					description,
-					link,
-					contact,
-					userId,
-					messageId: messageIds, // Сохраняем message_id
-				},
-			])
+			const { data: insertData, error: insertError } = await supabase
+				.from("groups")
+				.insert([
+					{
+						name,
+						community,
+						time,
+						format,
+						description,
+						link,
+						contact,
+						userId,
+						messageId: messageIds, // Сохраняем message_id
+					},
+				])
+
+			if (insertError) {
+				console.error("Ошибка при вставке в БД:", insertError)
+				await ctx.reply("Произошла ошибка при добавлении группы в БД.")
+				return
+			}
+
+			console.log("Данные успешно добавлены в БД:", insertData)
+
 			// Уведомление об успешном добавлении
 			await ctx.reply("*Группа успешно добавлена 🎉*\nВернуться в меню /start", {
 				reply_markup: new InlineKeyboard().url("Смотреть", "https://t.me/trust_unity"),
 			})
+
 			// Сброс сессии
 			resetSession(ctx)
 		} catch (error) {
