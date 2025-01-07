@@ -38,7 +38,8 @@ interface SessionData {
 type MyContext = Context & SessionFlavor<SessionData> & ParseModeFlavor
 
 const bot = new Bot<MyContext>(token)
-const CHANNEL_ID = "-1002387924511"
+// const CHANNEL_ID = "-1002387924511"
+const CHANNEL_IDS = ["-1002387924511"]
 
 bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
 bot.use(
@@ -196,7 +197,7 @@ bot.on("callback_query:data", async ctx => {
 			// Удаляем сообщение из канала, если оно существует
 			if (messageId) {
 				try {
-					await bot.api.deleteMessage(CHANNEL_ID, messageId)
+					await bot.api.deleteMessage(CHANNEL_IDS, messageId)
 				} catch (deleteError) {
 					console.error("Ошибка при удалении сообщения из канала:", deleteError)
 					await ctx.reply(
@@ -266,9 +267,11 @@ bot.on("message:text", async ctx => {
 
 		try {
 			// Отправка сообщения в канал
-			const sentMessage = await bot.api.sendMessage(CHANNEL_ID, message, {
+			// Либо CHANNEL_ID
+			const sentMessage = await bot.api.sendMessage(CHANNEL_IDS, message, {
 				parse_mode: "Markdown",
 			})
+
 			// Сохранение данных в БД
 			await supabase.from("groups").insert([
 				{
