@@ -38,7 +38,7 @@ interface SessionData {
 type MyContext = Context & SessionFlavor<SessionData> & ParseModeFlavor
 
 const bot = new Bot<MyContext>(token)
-const CHANNEL_IDS = ["-1002387924511"]
+const CHANNEL_IDS = ["-1002387924511", "-1002167754817"]
 // const CHANNEL_IDS = ["-1002387924511", "-1002167754817", "-1002442910746"]
 
 bot.use(session({ initial: (): SessionData => ({ groupData: {} }) })) // для сессий
