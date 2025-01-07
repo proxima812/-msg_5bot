@@ -153,7 +153,7 @@ bot.on("callback_query:data", async ctx => {
 				const keyboard = new InlineKeyboard()
 
 				data.forEach(group => {
-					keyboard.text(`🗑 Удалить - ${group.name}`, `delete_group_${group.id}`).row()
+					keyboard.text(`🗑 - ${group.name}`, `delete_group_${group.id}`)
 				})
 
 				await ctx.reply("📝 Ваши группы:", {
@@ -183,13 +183,17 @@ bot.on("callback_query:data", async ctx => {
 				return
 			}
 
-			// Удаляем сообщение из канала
 			const { messageId } = groupData
+
+			// Удаляем сообщение из канала, если оно существует
 			if (messageId) {
 				try {
 					await bot.api.deleteMessage(CHANNEL_ID, messageId)
 				} catch (deleteError) {
 					console.error("Ошибка при удалении сообщения из канала:", deleteError)
+					await ctx.reply(
+						"Не удалось удалить сообщение из канала, но группа будет удалена.",
+					)
 				}
 			}
 
@@ -201,7 +205,7 @@ bot.on("callback_query:data", async ctx => {
 
 			if (deleteError) throw deleteError
 
-			await ctx.reply(`Группа успешно удалена.`)
+			await ctx.reply("Группа успешно удалена.")
 		} catch (error) {
 			console.error("Ошибка при удалении группы:", error)
 			await ctx.reply("Произошла ошибка при удалении группы.")
