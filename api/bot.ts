@@ -124,26 +124,6 @@ bot.command("start", async ctx => {
 	})
 })
 
-bot.command("add_channel", async ctx => {
-	const channelId = ctx.message.text.split(" ")[1]
-	if (!channelId) {
-		await ctx.reply("Пожалуйста, укажите CHANNEL_ID.")
-		return
-	}
-
-	try {
-		// Добавляем канал в таблицу groupsList
-		const { error } = await supabase.from("groupsList").insert([{ idGroup: channelId }])
-
-		if (error) throw error
-
-		await ctx.reply(`Канал ${channelId} успешно добавлен в список!`)
-	} catch (error) {
-		console.error("Ошибка при добавлении канала:", error)
-		await ctx.reply("Произошла ошибка при добавлении канала.")
-	}
-})
-
 bot.on("callback_query:data", async ctx => {
 	const data = ctx.callbackQuery.data
 
@@ -283,83 +263,35 @@ bot.on("message:text", async ctx => {
 			(contact ? `🛜 *Контакт:* ${escapeMarkdown(contact)}\n` : "") +
 			(link ? `🌐 *Ссылка:* ${escapeMarkdown(link)}` : "")
 
-		// try {
-		// 	// Отправка сообщения в канал
-		// 	const sentMessage = await bot.api.sendMessage(CHANNEL_ID, message, {
-		// 		parse_mode: "Markdown",
-		// 	})
-		// 	// Сохранение данных в БД
-		// 	await supabase.from("groups").insert([
-		// 		{
-		// 			name,
-		// 			community,
-		// 			time,
-		// 			format,
-		// 			description,
-		// 			link,
-		// 			contact,
-		// 			userId,
-		// 			messageId: sentMessage.message_id, // Сохраняем message_id
-		// 		},
-		// 	])
-		// 	// Уведомление об успешном добавлении
-		// 	await ctx.reply("*Группа успешно добавлена 🎉*\nВернуться в меню /start", {
-		// 		reply_markup: new InlineKeyboard().url("Смотреть", "https://t.me/trust_unity"),
-		// 	})
-		// 	// Сброс сессии
-		// 	resetSession(ctx)
-		// } catch (error) {
-		// 	console.error("Ошибка при добавлении группы:", error)
-		// 	await ctx.reply("Произошла ошибка. Попробуйте позже.")
-    // }
-
-    
-    try {
-			// Получаем все каналы из таблицы groupsList
-			const { data: channels, error: channelsError } = await supabase
-				.from("groupsList")
-				.select("idGroup")
-
-			if (channelsError) throw channelsError
-
-			if (channels && channels.length > 0) {
-				// Отправляем сообщение в каждый канал
-				for (const channel of channels) {
-					const sentMessage = await bot.api.sendMessage(channel.idGroup, message, {
-						parse_mode: "Markdown",
-					})
-
-					// Сохраняем данные группы и сообщение в таблице groups
-					await supabase.from("groups").insert([
-						{
-							name,
-							community,
-							time,
-							format,
-							description,
-							link,
-							contact,
-							userId,
-							messageId: sentMessage.message_id, // Сохраняем message_id
-						},
-					])
-				}
-
-				// Уведомление об успешном добавлении
-				await ctx.reply("*Группа успешно добавлена 🎉*\nВернуться в меню /start", {
-					reply_markup: new InlineKeyboard().url("Смотреть", "https://t.me/trust_unity"),
-				})
-
-				// Сброс сессии
-				resetSession(ctx)
-			}
+		try {
+			// Отправка сообщения в канал
+			const sentMessage = await bot.api.sendMessage(CHANNEL_ID, message, {
+				parse_mode: "Markdown",
+			})
+			// Сохранение данных в БД
+			await supabase.from("groups").insert([
+				{
+					name,
+					community,
+					time,
+					format,
+					description,
+					link,
+					contact,
+					userId,
+					messageId: sentMessage.message_id, // Сохраняем message_id
+				},
+			])
+			// Уведомление об успешном добавлении
+			await ctx.reply("*Группа успешно добавлена 🎉*\nВернуться в меню /start", {
+				reply_markup: new InlineKeyboard().url("Смотреть", "https://t.me/trust_unity"),
+			})
+			// Сброс сессии
+			resetSession(ctx)
 		} catch (error) {
 			console.error("Ошибка при добавлении группы:", error)
 			await ctx.reply("Произошла ошибка. Попробуйте позже.")
-    }
-    
-
-
+		}
 	}
 })
 
