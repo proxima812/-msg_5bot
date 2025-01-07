@@ -124,72 +124,6 @@ bot.command("start", async ctx => {
 	})
 })
 
-// Вывод групп текущего пользователя с клавиатурой:
-bot.command("my_groups", async ctx => {
-	const userId = ctx.from?.id
-	try {
-		const { data, error } = await supabase
-			.from("groups")
-			.select("id, name, messageId")
-			.eq("userId", userId)
-
-		if (error) throw error
-
-		if (data && data.length > 0) {
-			const keyboard = new InlineKeyboard()
-
-			data.forEach(group => {
-				keyboard.text(`🗑 Удалить - ${group.name}`, `delete_group_${group.id}`).row()
-			})
-
-			await ctx.reply("📝 Ваши группы:", {
-				reply_markup: keyboard,
-			})
-		} else {
-			await ctx.reply("У вас ещё нет добавленных групп.")
-		}
-	} catch (error) {
-		console.error("Ошибка при получении групп:", error)
-		await ctx.reply("Произошла ошибка при получении ваших групп.")
-	}
-})
-
-// Удаление группы:
-bot.command("delete_group", async ctx => {
-	const userId = ctx.from?.id
-	const groupId = ctx.message.text.split(" ")[1] // Ожидается /delete_group <id>
-
-	if (!groupId) {
-		return ctx.reply("Введите ID группы, которую хотите удалить.")
-	}
-
-	try {
-		const { data, error } = await supabase
-			.from("groups")
-			.select("messageId")
-			.eq("id", groupId)
-			.eq("userId", userId)
-			.single()
-
-		if (error || !data) {
-			return ctx.reply(
-				"Группа с указанным ID не найдена или вы не являетесь её создателем.",
-			)
-		}
-
-		// Удаление из БД
-		await supabase.from("groups").delete().eq("id", groupId).eq("userId", userId)
-
-		// Удаление сообщения из канала
-		await bot.api.deleteMessage(CHANNEL_ID, data.messageId)
-
-		await ctx.reply("Группа успешно удалена.")
-	} catch (error) {
-		console.error("Ошибка при удалении группы:", error)
-		await ctx.reply("Произошла ошибка при удалении группы.")
-	}
-})
-
 bot.on("callback_query:data", async ctx => {
 	const data = ctx.callbackQuery.data
 	if (data === "show_text") {
@@ -203,6 +137,35 @@ bot.on("callback_query:data", async ctx => {
 		resetSession(ctx)
 		ctx.session.step = "name"
 		await ctx.reply(steps.name.message)
+	}
+	// Обработка "Мои группы/Удалить"
+	if (data === "my_groups") {
+		const userId = ctx.from?.id
+		try {
+			const { data, error } = await supabase
+				.from("groups")
+				.select("id, name, messageId")
+				.eq("userId", userId)
+
+			if (error) throw error
+
+			if (data && data.length > 0) {
+				const keyboard = new InlineKeyboard()
+
+				data.forEach(group => {
+					keyboard.text(`🗑 Удалить - ${group.name}`, `delete_group_${group.id}`).row()
+				})
+
+				await ctx.reply("📝 Ваши группы:", {
+					reply_markup: keyboard,
+				})
+			} else {
+				await ctx.reply("У вас ещё нет добавленных групп.")
+			}
+		} catch (error) {
+			console.error("Ошибка при получении групп:", error)
+			await ctx.reply("Произошла ошибка при получении ваших групп.")
+		}
 	}
 	if (data.startsWith("delete_group_")) {
 		const groupId = data.replace("delete_group_", "")
