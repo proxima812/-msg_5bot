@@ -195,14 +195,28 @@ bot.on("callback_query:data", async ctx => {
 			const { messageId } = groupData
 
 			// Удаляем сообщение из канала, если оно существует
+			// if (messageId) {
+			// 	try {
+			// 		await bot.api.deleteMessage(CHANNEL_IDS, messageId)
+			// 	} catch (deleteError) {
+			// 		console.error("Ошибка при удалении сообщения из канала:", deleteError)
+			// 		await ctx.reply(
+			// 			"Не удалось удалить сообщение из канала, но группа будет удалена.",
+			// 		)
+			// 	}
+			// }
+
 			if (messageId) {
-				try {
-					await bot.api.deleteMessage(CHANNEL_IDS, messageId)
-				} catch (deleteError) {
-					console.error("Ошибка при удалении сообщения из канала:", deleteError)
-					await ctx.reply(
-						"Не удалось удалить сообщение из канала, но группа будет удалена.",
-					)
+				for (const channelId of CHANNEL_IDS) {
+					try {
+						// Удаляем сообщение из каждого канала
+						await bot.api.deleteMessage(channelId, messageId)
+					} catch (deleteError) {
+						console.error("Ошибка при удалении сообщения из канала:", deleteError)
+						await ctx.reply(
+							"Не удалось удалить сообщение из канала, но группа будет удалена.",
+						)
+					}
 				}
 			}
 
@@ -268,9 +282,21 @@ bot.on("message:text", async ctx => {
 		try {
 			// Отправка сообщения в канал
 			// Либо CHANNEL_ID
-			const sentMessage = await bot.api.sendMessage(CHANNEL_IDS, message, {
-				parse_mode: "Markdown",
-			})
+			// const sentMessage = await bot.api.sendMessage(CHANNEL_IDS, message, {
+			// 	parse_mode: "Markdown",
+			// })
+
+			for (const channelId of CHANNEL_IDS) {
+				try {
+					// Отправляем сообщение в каждый канал
+					await bot.api.sendMessage(channelId, message, {
+						parse_mode: "Markdown",
+					})
+				} catch (sendError) {
+					console.error(`Ошибка при отправке сообщения в канал ${channelId}:`, sendError)
+					// Вы можете отправить сообщение только в один канал, или указать обработку ошибок
+				}
+			}
 
 			// Сохранение данных в БД
 			await supabase.from("groups").insert([
