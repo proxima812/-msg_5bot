@@ -224,6 +224,7 @@ bot.on("callback_query:data", async ctx => {
 // function escapeMarkdown(text: string): string {
 // 	return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")
 // }
+
 function escapeMarkdown(text: string): string {
 	return text.replace(/[_*[\]()~`>#+\-=|{}]/g, "\\$&")
 }
