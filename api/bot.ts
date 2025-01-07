@@ -18,7 +18,6 @@ const supabase = createClient(
 )
 const token = process.env.TOKEN
 if (!token) throw new Error("TOKEN is unset")
-
 interface GroupData {
 	name?: string
 	format?: string
@@ -27,6 +26,8 @@ interface GroupData {
 	link?: string
 	time?: string
 	contact?: string
+	userId?: number // Добавлено поле
+	messageId?: number // Для хранения message_id в канале
 }
 
 interface SessionData {
@@ -151,53 +152,12 @@ function escapeMarkdown(text: string): string {
 	return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")
 }
 
-// async function viewGroups(ctx: MyContext) {
-// 	try {
-// 		const { data, error } = await supabase.from("groups").select("*")
-// 		if (error) throw error
-
-// 		if (data && data.length > 0) {
-// 			let message = "📝 Список групп:\n"
-// 			data.forEach((group: GroupData, index) => {
-// 				message += `\n*${index + 1}* - ${group.name} (ID: ${group.id})`
-// 			})
-// 			await ctx.reply(message, { parse_mode: "Markdown" })
-// 		} else {
-// 			await ctx.reply("Группы не найдены.")
-// 		}
-// 	} catch (error) {
-// 		console.error("Ошибка при получении групп:", error)
-// 		await ctx.reply("Произошла ошибка при получении групп.")
-// 	}
-// }
-
 bot.on("message:text", async ctx => {
 	const step = ctx.session.step
 
 	if (!step || !(step in steps)) return
 
 	const currentStep = steps[step]
-
-	// if (step === "delete") {
-	// 	const groupId = ctx.message.text.trim()
-
-	// 	try {
-	// 		const { data, error } = await supabase.from("groups").delete().eq("id", groupId)
-
-	// 		if (error) throw error
-
-	// 		if (data && data.length > 0) {
-	// 			await ctx.reply(`Группа с ID ${groupId} успешно удалена.`)
-	// 		} else {
-	// 			await ctx.reply("Группа с таким ID не найдена.")
-	// 		}
-	// 	} catch (error) {
-	// 		console.error("Ошибка при удалении группы:", error)
-	// 		await ctx.reply("Произошла ошибка при удалении группы.")
-	// 	}
-
-	// 	ctx.session.step = undefined
-	// }
 
 	if (currentStep.validate) {
 		const validationResult = currentStep.validate(ctx.message.text.trim())
@@ -210,38 +170,145 @@ bot.on("message:text", async ctx => {
 	ctx.session.groupData[step] = ctx.message.text.trim()
 	ctx.session.step = currentStep.next
 
-	if (currentStep.next) {
-		await ctx.reply(steps[currentStep.next].message)
-	} else {
+	// if (currentStep.next) {
+	// 	await ctx.reply(steps[currentStep.next].message)
+	// } else {
+	// 	const { name, community, time, format, description, link, contact } =
+	// 		ctx.session.groupData
+
+	// 	const message =
+	// 		`🍀 *Название:* ${escapeMarkdown(name)}\n` +
+	// 		(community ? `👥 *Сообщество:* ${escapeMarkdown(community)}\n` : "") +
+	// 		(time ? `⏰ *Время:* ${escapeMarkdown(time)}\n` : "") +
+	// 		(format ? `♨ *Формат:* ${escapeMarkdown(format)}\n` : "") +
+	// 		(description ? `✨ *Описание:* ${escapeMarkdown(description)}\n` : "") +
+	// 		(contact ? `🛜 *Контакт:* ${escapeMarkdown(contact)}\n` : "") +
+	// 		(link ? `🌐 *Ссылка:* ${escapeMarkdown(link)}` : "")
+
+	// 	try {
+	// 		await supabase
+	// 			.from("groups")
+	// 			.insert([{ name, community, time, format, description, link, contact }])
+
+	// 		await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "Markdown" })
+
+	// 		await ctx.reply("*Группа успешно добавлена 🎉*\nВернуться в меню /start", {
+	// 			reply_markup: new InlineKeyboard().url("Смотреть", "https://t.me/trust_unity"),
+	// 		})
+
+	// 		ctx.session.groupData = {}
+	// 		ctx.session.step = undefined
+	// 	} catch (error) {
+	// 		console.error("Ошибка при добавлении группы:", error)
+	// 		await ctx.reply("Произошла ошибка. Попробуйте позже.")
+	// 	}
+	// }
+
+	// Изменение сохранения группы:
+	if (currentStep.next === null) {
 		const { name, community, time, format, description, link, contact } =
 			ctx.session.groupData
+		const userId = ctx.from?.id
 
 		const message =
 			`🍀 *Название:* ${escapeMarkdown(name)}\n` +
 			(community ? `👥 *Сообщество:* ${escapeMarkdown(community)}\n` : "") +
 			(time ? `⏰ *Время:* ${escapeMarkdown(time)}\n` : "") +
 			(format ? `♨ *Формат:* ${escapeMarkdown(format)}\n` : "") +
-			(description ? `✨ *Описание:* ${escapeMarkdown(description)}\n` : "") +
+			(description ? `\n✨ *Описание:* ${escapeMarkdown(description)}\n\n` : "") +
 			(contact ? `🛜 *Контакт:* ${escapeMarkdown(contact)}\n` : "") +
 			(link ? `🌐 *Ссылка:* ${escapeMarkdown(link)}` : "")
 
 		try {
-			await supabase
-				.from("groups")
-				.insert([{ name, community, time, format, description, link, contact }])
+			// Отправка сообщения в канал
+			const sentMessage = await bot.api.sendMessage(CHANNEL_ID, message, {
+				parse_mode: "Markdown",
+			})
 
-			await bot.api.sendMessage(CHANNEL_ID, message, { parse_mode: "Markdown" })
+			// Сохранение в БД с userId и messageId
+			await supabase.from("groups").insert([
+				{
+					name,
+					community,
+					time,
+					format,
+					description,
+					link,
+					contact,
+					userId,
+					messageId: sentMessage.message_id,
+				},
+			])
 
 			await ctx.reply("*Группа успешно добавлена 🎉*\nВернуться в меню /start", {
 				reply_markup: new InlineKeyboard().url("Смотреть", "https://t.me/trust_unity"),
 			})
 
-			ctx.session.groupData = {}
-			ctx.session.step = undefined
+			resetSession(ctx)
 		} catch (error) {
 			console.error("Ошибка при добавлении группы:", error)
 			await ctx.reply("Произошла ошибка. Попробуйте позже.")
 		}
+	}
+})
+
+// Вывод групп текущего пользователя:
+bot.command("my_groups", async ctx => {
+	const userId = ctx.from?.id
+	try {
+		const { data, error } = await supabase
+			.from("groups")
+			.select("*")
+			.eq("userId", userId)
+
+		if (error) throw error
+
+		if (data && data.length > 0) {
+			let message = "📝 Ваши группы:\n"
+			data.forEach((group: GroupData, index) => {
+				message += `\n*${index + 1}* - ${escapeMarkdown(group.name || "")} (ID: ${group.id})`
+			})
+			await ctx.reply(message, { parse_mode: "Markdown" })
+		} else {
+			await ctx.reply("У вас ещё нет добавленных групп.")
+		}
+	} catch (error) {
+		console.error("Ошибка при получении групп:", error)
+		await ctx.reply("Произошла ошибка при получении ваших групп.")
+	}
+})
+
+// Удаление группы:
+bot.command("delete_group", async ctx => {
+	const userId = ctx.from?.id
+	const groupId = ctx.message.text.split(" ")[1] // Ожидается /delete_group <id>
+
+	if (!groupId) {
+		return ctx.reply("Введите ID группы, которую хотите удалить.")
+	}
+
+	try {
+		const { data, error } = await supabase
+			.from("groups")
+			.select("messageId")
+			.eq("id", groupId)
+			.eq("userId", userId)
+			.single()
+
+		if (error || !data) {
+			return ctx.reply("Группа с указанным ID не найдена или вы не являетесь её создателем.")
+		}
+
+		// Удаление из БД
+		await supabase.from("groups").delete().eq("id", groupId).eq("userId", userId)
+
+		// Удаление сообщения из канала
+		await bot.api.deleteMessage(CHANNEL_ID, data.messageId)
+
+		await ctx.reply("Группа успешно удалена.")
+	} catch (error) {
+		console.error("Ошибка при удалении группы:", error)
+		await ctx.reply("Произошла ошибка при удалении группы.")
 	}
 })
 
