@@ -285,16 +285,19 @@ bot.on("message:text", async ctx => {
 			// const sentMessage = await bot.api.sendMessage(CHANNEL_IDS, message, {
 			// 	parse_mode: "Markdown",
 			// })
-
+			const messageIds: number[] = []
 			for (const channelId of CHANNEL_IDS) {
 				try {
 					// Отправляем сообщение в каждый канал
-					await bot.api.sendMessage(channelId, message, {
+					const sentMessage = await bot.api.sendMessage(channelId, message, {
 						parse_mode: "Markdown",
 					})
+
+					// Добавляем message_id в массив
+					messageIds.push(sentMessage.message_id)
 				} catch (sendError) {
 					console.error(`Ошибка при отправке сообщения в канал ${channelId}:`, sendError)
-					// Вы можете отправить сообщение только в один канал, или указать обработку ошибок
+					// Здесь можно отправить сообщение только в один канал или указать обработку ошибок
 				}
 			}
 
@@ -309,7 +312,7 @@ bot.on("message:text", async ctx => {
 					link,
 					contact,
 					userId,
-					messageId: sentMessage.message_id, // Сохраняем message_id
+					messageId: messageIds, // Сохраняем message_id
 				},
 			])
 			// Уведомление об успешном добавлении
