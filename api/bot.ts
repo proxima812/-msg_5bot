@@ -337,5 +337,4 @@ bot.on("message:text", async ctx => {
 		}
 	}
 })
-
 export default webhookCallback(bot, "https")
